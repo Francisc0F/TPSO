@@ -2,14 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "utils.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/select.h>
 #include <fcntl.h>
 #include <time.h>
 #include <signal.h>
-
+#include "utils.h"
 
 
 int fdServer = 0;
@@ -41,7 +40,6 @@ void terminar(){
 		
 }
 
-
 int checkRunning(){
    	FILE * fp;
 	if( access(ADMINTEMP, F_OK ) != -1 ) {
@@ -60,38 +58,19 @@ int checkRunning(){
 	return 0;
 }
 
+void removerTodosCli(){
+  	pcliente aux = listaCli;
 
-void OK(char * c_pipe){
-	mensagem m;
-	int fd_cl = open(c_pipe, O_WRONLY ); 	
-				
-	strcpy(m.msg, "OK");
-	m.erro = 0;
-	write(fd_cl, &m, sizeof(m)); // == sizeof(mensagem)
-	 
-	close(fd_cl);		
+	while(aux != NULL){
+		char * fifo = NULL;
+		fifo = getFifoCliWithPid(fifo, aux->pid);
+	 	RES(fifo, "removido");
+
+		listaCli = removerCliente(listaCli, aux->nome);	
+		
+		aux = aux->prox;
+	}
 }
-
-void RES(char * c_pipe, char * info){
-	mensagem m;
-	int fd_cl = open(c_pipe, O_WRONLY ); 	
-				
-	strcpy(m.msg, info);
-	m.erro = 0;
-	write(fd_cl, &m, sizeof(m)); // == sizeof(mensagem)
-	 
-	close(fd_cl);	
-}
-
-void ERROR(char * c_pipe, char * errorMsg){
-	mensagem m;
-	int fd_cl = open(c_pipe, O_WRONLY ); 	
-	strcpy(m.msg, errorMsg);
-	m.erro = 1;
-	write(fd_cl, &m, sizeof(m)); // == sizeof(mensagem)
-	close(fd_cl);
-}
-
 
 void processMsg(mensagem m){
 	fprintf(stderr, "\nMensagem recebida de \"%s\".\n", m.nome);
@@ -405,8 +384,7 @@ int main(int argc , char **argv) {
 		  		{
 		  			nome[(i-1)] = cmd[i];
 		  		}
-		  		printf("NOME %s\n",nome );
-
+		  	
 
 		  		pcliente c =  getClienteByName(listaCli, nome);
 
@@ -414,13 +392,26 @@ int main(int argc , char **argv) {
 		  			printf("Cliente \"%s\" nao existe. \n",nome );
 		  			continue;
 		  		}else {
-		  			char prefixo[20];
-					strcpy(prefixo, CLIPREFIXO);
-					char * c_pipe = strcat(prefixo, c->pid);
-		  			RES(c_pipe, "Foi removido do campeonato.");
-		  			listaCli = removerCliente(listaCli, nome);	
+		  			char * fifo = NULL;
+		  			fifo = getFifoCliWithPid(fifo, c->pid);
+
+		  			listaCli = removerCliente(listaCli, nome);
+
+		  			RES(fifo, "removido");
 		  		}
-		  	}	
+
+		  	}else if(strcmp(cmd, "exit") == 0){
+
+		  		if(countCli == 0){
+		  			terminar();
+		  			exit(EXIT_SUCCESS);	
+		  		}else{
+		  			removerTodosCli();
+		  			terminar();	
+		  			exit(EXIT_SUCCESS);
+		  		}
+		  	}
+
 		}
 	
 	}

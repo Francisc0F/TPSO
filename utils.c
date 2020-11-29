@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
+#include <fcntl.h>
 #include "utils.h"
 
 
@@ -112,6 +112,55 @@ pcliente removerCliente(pcliente lista, char * nome){
 	return lista;
 }
 
+//comu
+void OK(char * c_pipe){
+	mensagem m;
+	int fd_cl = open(c_pipe, O_WRONLY ); 	
+	if(fd_cl == -1){
+		perror("error: OK(char * c_pipe)");
+		return;
+	}
+
+	strcpy(m.msg, "OK");
+	m.erro = 0;
+	write(fd_cl, &m, sizeof(m)); 
+	 
+	close(fd_cl);		
+}
+
+void RES(char * c_pipe, char * info){
+	mensagem m;
+	int fd_cl = open(c_pipe, O_WRONLY ); 	
+	if(fd_cl == -1){
+		perror("error: RES(char * c_pipe, char * info)");
+		return;
+	}
+				
+	strcpy(m.msg, info);
+	m.erro = 0;
+	if(write(fd_cl, &m, sizeof(m))){
+		//fprintf(stderr, "error RES write\n");
+	} else{
+	 	fprintf(stderr, "error RES write\n");
+	}
+
+	close(fd_cl);	
+}
+
+void ERROR(char * c_pipe, char * errorMsg){
+	mensagem m;
+	int fd_cl = open(c_pipe, O_WRONLY );
+	if(fd_cl == -1){
+		perror("error: ERROR(char * c_pipe, char * errorMsg)");
+		return;
+	}
+
+	strcpy(m.msg, errorMsg);
+	m.erro = 1;
+	write(fd_cl, &m, sizeof(m)); 
+	close(fd_cl);
+}
+
 
 
 // menu
@@ -150,3 +199,10 @@ void splitString(char * str,
 
 }
 
+char * getFifoCliWithPid( char * fifo, char * pid){
+
+	char prefixo[100] = CLIPREFIXO;
+
+	fifo = strcat(prefixo, pid);
+	return fifo;
+}

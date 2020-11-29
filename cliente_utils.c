@@ -58,7 +58,7 @@ int clienteLe(char * fifo, int fd_cl){
 			}else{
 				success = 1;
 			}
-			fprintf(stderr, "\nmsg do server: %s\n\n", m.msg);
+			fprintf(stderr, "\nserver: %s\n\n", m.msg);
 			break;
 		}	
 	}

@@ -42,6 +42,18 @@ int existe(pcliente lista,char * nome);
 
 pcliente adicionarCli(pcliente lista, mensagem m, char * pid);
 
+//comu
+
+void OK(char * c_pipe);
+
+void RES(char * c_pipe, char * info);
+
+void ERROR(char * c_pipe, char * errorMsg);
+
+
+
+char * getFifoCliWithPid( char * buffer, char * pid);
+
 void splitString(char * str, char * delim, char *dest , int * count);
 
 void menu();

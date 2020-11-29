@@ -15,7 +15,7 @@ int countCli = 0;
 int fd_cl;
 int fd; 
 
-void getFifoName( char * buffer, int bz){
+char * getFifoName( char * buffer){
 
   	char pidStr[100];
   	sprintf(pidStr, "%d", getpid());
@@ -23,24 +23,22 @@ void getFifoName( char * buffer, int bz){
 	char prefixo[100] = CLIPREFIXO;
 
 	buffer = strcat(prefixo, pidStr);
-	printf("getFifoName: %s\n",buffer );
+	return buffer;
 }
 
 
 
 void terminar(){
 	printf("Cliente terminado.\n");
-	char fifo[100];
+	char * fifo = NULL;
+	fifo = getFifoName(fifo);
 
-	getFifoName(fifo, sizeof(fifo));
-
-	fprintf(stderr, "aqui esta ele %s\n",fifo);
 	unlink(fifo);
 
 	close(fd_cl);
 	close(fd);   
 	printf("------------------------------------------------ \n");
-
+	exit(EXIT_FAILURE);
 }
 
 
@@ -50,7 +48,6 @@ void sig_handler(int sig, siginfo_t *siginfo, void *context){
 		terminar();
 		exit(EXIT_FAILURE);
 	}
-	//validar de e' o admin a enviar sinal (long) siginfo->si_pid
 		
 	printf("Terminar Jogo. Sending PID: %ld, UID: %ld value:%d \n", 
 	(long) siginfo->si_pid, (long)siginfo->si_uid, siginfo->si_value.sival_int);
@@ -69,8 +66,6 @@ int main(int argc, char**argv) {
 	// sinais
 	struct sigaction act;
 	memset(&act, '\0', sizeof(act));
-	//int pid = getpid();
-	/// printf("Pid: %d \n", pid);
 	
 	act.sa_sigaction = &sig_handler;
 	act.sa_flags = SA_SIGINFO;
@@ -84,9 +79,8 @@ int main(int argc, char**argv) {
 		return 0;
 	}
 
-	// init
-
-	fd = open(SERVERFIFO, O_WRONLY ); /*    check | O_NONBLOCK  */
+	// comunication
+	fd = open(SERVERFIFO, O_WRONLY ); 
   	if (fd < 0){
   		fprintf(stderr, "Servidor Off. A terminar cliente.\n");
   		exit(EXIT_FAILURE);  
@@ -102,15 +96,20 @@ int main(int argc, char**argv) {
 	char pidStr[100];
   	sprintf(pidStr, "%d", getpid());
 
-  	char info[100];
-  	strcpy(info,"login ");
-
-  	char prefixo[20];
-	strcpy(prefixo, CLIPREFIXO);
-	char * fifo = strcat(prefixo, pidStr);
+	char * fifo = NULL;
+	fifo = getFifoName(fifo);
+	
 	mkfifo(fifo, 0666); 
 
 	fd_cl = open(fifo, O_RDWR | O_NONBLOCK); 	
+
+	if(fd_cl == -1){
+		perror("error: fd_cl = open(fifo, O_RDWR | O_NONBLOCK);");
+		terminar();
+	}
+
+  	char info[100];
+  	strcpy(info,"login ");
 
 	while(1){
 		printf("Qual o seu nome: \n");
@@ -151,6 +150,7 @@ int main(int argc, char**argv) {
 
 		if(readyfd == -1){
 			perror("error: select()\n");
+
 		}
 
 		if(readyfd == 0){
@@ -174,8 +174,14 @@ int main(int argc, char**argv) {
 				}else{
 					success = 1;
 				}
-			fprintf(stderr, "\nmsg do server: %s\n\n", m.msg);
-			
+
+				if(strcmp(m.msg, "removido") == 0 ){
+						fprintf(stderr, "\nserver: Foi removido do campeonato.\n\n");
+						printf("A sair do Jogo.\n");
+						terminar();	
+				}else{
+					fprintf(stderr, "\nserver: %s\n\n", m.msg);
+				}
 			}	
 			
 		}
@@ -191,6 +197,7 @@ int main(int argc, char**argv) {
 					clienteLe(fifo, fd_cl);
 					printf("A sair do Jogo.\n");
 					terminar();
+					break;
 				
 	  		}	
 		}
