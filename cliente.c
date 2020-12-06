@@ -141,12 +141,12 @@ int main(int argc, char**argv) {
 		FD_SET(STDIN_FILENO, &rfds);
 		FD_SET(fd_cl, &rfds);	
 
-		timeval.tv_sec = 20;
-		timeval.tv_usec = 0;
+		//timeval.tv_sec = 20;
+		//timeval.tv_usec = 0;
 
   		MenuCliente();
 
-		readyfd = select(fd_cl + 1, &rfds, NULL, NULL, &timeval);
+		readyfd = select(fd_cl + 1, &rfds, NULL, NULL, NULL);
 
 		if(readyfd == -1){
 			perror("error: select()\n");

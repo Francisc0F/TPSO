@@ -2,8 +2,6 @@
 #define UTIL_H
 
 
-#define START_READ              	1   
-#define STOP_READ              		2	
 
 #define SERVERFIFO             "./serverFIFO"	  
 #define CLIPREFIXO             "./c_"
@@ -52,7 +50,7 @@ void ERROR(char * c_pipe, char * errorMsg);
 
 
 
-char * getFifoCliWithPid( char * buffer, char * pid);
+char * getFifoCliWithPid(char * pid);
 
 void splitString(char * str, char * delim, char *dest , int * count);
 

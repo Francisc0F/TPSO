@@ -62,8 +62,10 @@ void removerTodosCli(){
   	pcliente aux = listaCli;
 
 	while(aux != NULL){
-		char * fifo = NULL;
-		fifo = getFifoCliWithPid(fifo, aux->pid);
+		char fifo[100] = "";
+		strcpy(fifo, getFifoCliWithPid(aux->pid));
+
+		
 	 	RES(fifo, "removido");
 
 		listaCli = removerCliente(listaCli, aux->nome);	
@@ -90,7 +92,6 @@ void processMsg(mensagem m){
 		count++;
 		// fazer login 	
 		if(strcmp(ptr, "login") == 0 ){
-			//fprintf(stderr, "A registar jogador.\n");
 			ptr = strtok(NULL, delim);
 			if(existe(listaCli, m.nome) == 0){
 				listaCli = adicionarCli(listaCli, m, ptr);
@@ -155,25 +156,14 @@ void sig_handler(int sig, siginfo_t *siginfo, void *context){
 		
 		
 	if(sig == SIGINT){
+		if(countCli > 0){
+			removerTodosCli();	
+		}
+		
 		terminar();
 		exit(EXIT_FAILURE);
 	}else if(sig == SIGUSR2){
-/*
-		printf("\nSinal SIGUSR2. %ld, UID: %ld value:%d \n", 
-		(long) siginfo->si_pid, 
-		(long)siginfo->si_uid, 
-		siginfo->si_value.sival_int);*/
 
-		if(siginfo->si_value.sival_int == START_READ){
-			//fprintf(stderr, "\nSTART_READ\n");
-			
-		}
-		else if(siginfo->si_value.sival_int == STOP_READ){
-			//fprintf(stderr, "\nSTOP_READ\n");
-			//int m =	menu();
-		}
-
-	//validar de e' o admin a enviar sinal (long) siginfo->si_pid
 		
 	}
 
@@ -191,8 +181,6 @@ int main(int argc , char **argv) {
 	// sinais
 	struct sigaction act;
 	memset(&act, '\0', sizeof(act));
-	//int pid = getpid();
-	/// printf("Pid: %d \n", pid);
 	
 	act.sa_sigaction = &sig_handler;
 	act.sa_flags = SA_SIGINFO;
@@ -307,8 +295,11 @@ int main(int argc , char **argv) {
 	mkfifo(SERVERFIFO, 0666); 
   	
   	fdServer = open(SERVERFIFO, O_RDWR | O_NONBLOCK);
-  	if (fdServer < 0)
-		exit(EXIT_FAILURE); 
+  	if (fdServer < 0){
+  		perror("SERVERFIFO");
+  		exit(EXIT_FAILURE); 
+  	}
+		
 
 
 
@@ -332,14 +323,14 @@ int main(int argc , char **argv) {
 		FD_SET(STDIN_FILENO, &rfds);
 		FD_SET(fdServer, &rfds);	
 
-		timeval.tv_sec = 20;
-		timeval.tv_usec = 0;
+		//timeval.tv_sec = 20;
+		//timeval.tv_usec = 0;
 
 
 		menu();
 
 
-		readyfd = select(fdServer + 1, &rfds, NULL, NULL, &timeval);
+		readyfd = select(fdServer + 1, &rfds, NULL, NULL, NULL);
 
 		if(readyfd == -1){
 			perror("error: select()\n");
@@ -378,7 +369,7 @@ int main(int argc , char **argv) {
 		  		}
 		  		char nome[100];
 		  		memset(nome, '\0',100);
-		  		// todo make function
+		  		
 		  		int i ;
 		  		for (i = 1; i < strlen(cmd); i++)
 		  		{
@@ -392,8 +383,9 @@ int main(int argc , char **argv) {
 		  			printf("Cliente \"%s\" nao existe. \n",nome );
 		  			continue;
 		  		}else {
-		  			char * fifo = NULL;
-		  			fifo = getFifoCliWithPid(fifo, c->pid);
+		  			 
+		  			char fifo[100] = "";
+					strcpy(fifo, getFifoCliWithPid(c->pid));
 
 		  			listaCli = removerCliente(listaCli, nome);
 

@@ -63,7 +63,9 @@ pcliente adicionarCli(pcliente lista, mensagem m, char * pid){
     	perror("adiconarCli - ERROR\n");
     	return NULL;
     }
-    countCli++;
+    countCli++;	
+    memset(n->pid, '\0', sizeof(n->pid));
+
 	strcpy(n->pid , pid);
 
     strcpy(n->nome, m.nome);
@@ -181,28 +183,10 @@ void menu() {
 
 // string utils
 
-void splitString(char * str, 
-				char * delim, 
-				char * dest,
-				int * count){
+char * getFifoCliWithPid( char * pid){
 
-	char * ptr = strtok(str, delim);
-	int i = 0;
-	while(ptr != NULL){
-		(*count)++;
-		strcpy(&dest[i], "coisas");
-		//printf("%s\n", ptr); 
-		printf("%s\n", ptr); 
-		ptr = strtok(NULL, delim);
-		i++;
-	}
+	char prefixo[5] = "";
+	strcpy(prefixo, CLIPREFIXO) ;
 
-}
-
-char * getFifoCliWithPid( char * fifo, char * pid){
-
-	char prefixo[100] = CLIPREFIXO;
-
-	fifo = strcat(prefixo, pid);
-	return fifo;
+	return strcat(prefixo, pid);
 }
