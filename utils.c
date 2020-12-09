@@ -8,7 +8,7 @@
 
 
 // admin manager clientes
-extern int countCli;
+int countCli;
 
 void listaCliente(pcliente aux, FILE * p){
 		fprintf(p, "\n--------------------------------------\n");
@@ -173,9 +173,9 @@ void menu() {
     puts("\nplayers - Listar jogadores em jogo.");
     puts("games- Listar jogos disponiveis. ");
     puts("k<user name> - Remover jogador de campeonato.");
-    puts("s<user name> - Suspender ligacao de jogador.");
-    puts("r<user name> - Retomar ligacao de jogador.");
-    puts("end - Termina campeonato.");
+    //puts("s<user name> - Suspender ligacao de jogador.");
+    // puts("r<user name> - Retomar ligacao de jogador.");
+    // puts("end - Termina campeonato.");
     puts("exit - Desligar server.");
  
 }

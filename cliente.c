@@ -7,13 +7,14 @@
 #include <fcntl.h>
 #include <time.h>
 #include <string.h>
-#include "utils.h"
 #include "cliente_utils.h"
+#include "utils.h"
 
-int countCli = 0;
+int countCli;
 
 int fd_cl;
 int fd; 
+
 
 char * getFifoName( char * buffer){
 

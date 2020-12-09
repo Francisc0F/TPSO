@@ -12,6 +12,7 @@
 #include "utils.h"
 #include "cliente_utils.h"
 
+
 // cliente comunication
 void clienteEscreve(int fd, char * nome, char * texto){
 
@@ -44,7 +45,6 @@ void clienteEscreve(int fd, char * nome, char * texto){
 		fprintf(stderr, "fopen (%s, r); - ERROR", ADMINTEMP);
 	}
 }
-
 
 int clienteLe(char * fifo, int fd_cl){
 	int success = 0;

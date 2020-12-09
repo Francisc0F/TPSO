@@ -177,7 +177,6 @@ int main(int argc , char **argv) {
 	char *m = "MAXPLAYERS";
 	char *pm = NULL;
 	
-
 	// sinais
 	struct sigaction act;
 	memset(&act, '\0', sizeof(act));

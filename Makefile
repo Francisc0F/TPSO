@@ -1,20 +1,33 @@
-#todo better version
-all: cliente.c  admin.c g_jogo.c
-	gcc -g -Wall -o cliente cliente.c cliente_utils.c utils.c
-	gcc -g -Wall -o admin admin.c utils.c
-	gcc -g -Wall -o g_jogo g_jogo.c
+FLGS = -g -Wall 
+DELETE = admin admin.o utils.o cliente cliente.o cliente_utils.o g_jogo g_jogo.o
 
-cliente: cliente.c 
-	gcc -g -Wall -o cliente cliente.c cliente_utils.c utils.c
+all: admin cliente jogo
 
-jogo: g_jogo.c 
-	gcc -g  -Wall -o g_jogo g_jogo.c
+admin: admin.o utils.o
+	gcc $(FLGS) -o admin admin.o utils.o
 
-admin: admin.c
-	gcc -g -Wall -o admin admin.c utils.c 
+admin.o: admin.c utils.h
+	gcc -c admin.c
+
+
+cliente: cliente.o cliente_utils.o utils.o
+	gcc $(FLGS) -o cliente cliente.o cliente_utils.o utils.o
+
+cliente.o: cliente.c cliente_utils.h utils.h 
+	gcc -c cliente.c 
+	
+cliente_utils.o: cliente_utils.c utils.h
+	gcc -c cliente_utils.c		
+
+utils.o: utils.c 
+	gcc -c utils.c
+
+
+jogo: g_jogo.o
+	gcc $(FLGS) -o g_jogo g_jogo.o
+
+g_jogo.o: g_jogo.c
+	gcc -c g_jogo.c
+
 clean: 
-	$(RM) cliente admin g_jogo
-
-
-
-
+	$(RM) $(DELETE) 

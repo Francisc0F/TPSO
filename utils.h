@@ -7,6 +7,8 @@
 #define CLIPREFIXO             "./c_"
 #define ADMINTEMP              "./temp"
 
+extern int countCli;
+
 typedef struct c cliente, *pcliente;
 struct c {
 	char pid[100];
