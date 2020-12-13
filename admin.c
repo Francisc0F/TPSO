@@ -391,7 +391,12 @@ int main(int argc , char **argv) {
 		  			RES(fifo, "removido");
 		  		}
 
-		  	}else if(strcmp(cmd, "exit") == 0){
+		  	}else if(strcmp(cmd, "games")== 0){
+		  			printf("Jogos: \n");
+		  			printf("g_jogos \n");
+
+		  	}
+			else if(strcmp(cmd, "exit") == 0){
 
 		  		if(countCli == 0){
 		  			terminar();
