@@ -14,7 +14,7 @@ struct c {
 	char pid[100];
 	char nome[100];
 	char jogo[100];
-	char ultimaMsg[200];
+	char ultimaMsg[400];
 	int pontos;
 	pcliente prox;
 };
@@ -23,7 +23,7 @@ typedef struct m mensagem;
 struct m {
 	char nome[100];
 	char pid[100];
-	char msg[200];
+	char msg[400];
 	int erro;
 };
 

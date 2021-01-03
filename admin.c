@@ -92,17 +92,59 @@ void processMsg(mensagem m){
 		count++;
 		// fazer login 	
 		if(strcmp(ptr, "login") == 0 ){
+
 			ptr = strtok(NULL, delim);
 			if(existe(listaCli, m.nome) == 0){
 				listaCli = adicionarCli(listaCli, m, ptr);
 				if(numCli < countCli){
 					fprintf(stderr, "Mensagem enviada para \"%s\".\n", m.nome);
 					OK(c_pipe);
-					break;
+				
 				}else{
 					fprintf(stderr, "Mensagem enviada para \"%s\".\n", m.nome);
 					ERROR(c_pipe,"Erro: adicionar pessoa;");
 				}
+
+				// executa jogo 
+
+				int FP[2];
+				int PF[2];
+
+				char jogo_stream[400];
+				// 0 leitura / 1 escrita
+				//FDs 0  stdin / 1 stdout / 2 stderr / 3 canal[0] / 4 canal[1]
+				pipe(FP);
+				pipe(PF);
+				
+				int n;	
+
+				int res = fork();
+				if(res == 0){
+					// filho 	
+					close(PF[0]);
+					close(0);
+					dup(PF[1]);
+					close(PF[1]);
+
+					close(FP[0]);
+					close(1);
+					dup(FP[1]);
+					close(FP[1]);
+				
+					//FDs 0  stdin / canal[1] * / 2 stderr / 3 canal[0] / 4 canal[1]
+					execl("g_jogo", "g_jogo", NULL);	
+
+				} 
+				close(FP[1]);
+				while((n=read(FP[0], jogo_stream, 99))  == 99){
+				jogo_stream[n] = '\0';
+				printf("AQUI LEU :%s\n", jogo_stream);
+				write(PF[1], "testar enviu", 12);
+				}
+				//	RES(c_pipe, jogo_stream);
+				
+				close(FP[0]);
+
 
 			}else {
 				fprintf(stderr, "Mensagem enviada para \"%s\".\n", m.nome);
@@ -355,8 +397,8 @@ int main(int argc , char **argv) {
 
   	
 		if(FD_ISSET(STDIN_FILENO, &rfds)){
-			
 			scanf("%[^\n]%*c",cmd);
+			
 			if(strcmp(cmd, "players") == 0){
 
   				listarClientes(listaCli);
