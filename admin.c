@@ -140,12 +140,20 @@ void processMsg(mensagem m){
 				} 
 				close(FP[1]);
 				close(PF[0]);
-					fprintf(stderr, "fifo %d \n", FP[0]);
+
+				char resJogo[30] = {0};
+				fprintf(stderr, "fifo %d \n", FP[0]);
 				while(1){
 				ssize_t count = read(FP[0], jogo_stream, 399); 
+					fprintf(stderr,"count %d", count);
 					if(count > 0){
-						printf("leu %d\n",count);
-						write(1, jogo_stream, count);
+						jogo_stream[count] = '\0';
+						fprintf(stderr,"%s",jogo_stream);
+						
+					}else {
+						scanf("%s", resJogo);
+						fprintf(stderr,"resJogo %s",resJogo);
+						write(PF[1], resJogo, count);
 					}
 					/*if(count == -1){
 						continue;		

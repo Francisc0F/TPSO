@@ -20,8 +20,7 @@ void sig_handler(int sig, siginfo_t *siginfo, void *context){
 int main(int argc, char**argv) {
 	// sinais
 
-
-
+	setbuf(stdout, NULL);
 	struct sigaction act;
 	memset(&act, '\0', sizeof(act));
 	int pid = getpid();
@@ -48,10 +47,11 @@ int main(int argc, char**argv) {
 	printf("e o user tera de adivinhar a palavra em questao. \n\n");
 	printf("\tex:(b-tat-) -> babata \n");
 
-	exit(1);
+
 	while(1){
 		printf("Palavra: %s \t\t\t Sair -> q",listaInc[nP]);
-		printf("\nResposta: ");
+		printf("\nResposta: \n");
+
 		scanf("%s", res);
 	
 		if( res[0] == 'q')
