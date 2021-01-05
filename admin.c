@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/select.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 #include <time.h>
 #include <signal.h>
@@ -92,7 +93,7 @@ void processMsg(mensagem m){
 		count++;
 		// fazer login 	
 		if(strcmp(ptr, "login") == 0 ){
-
+		printf("login\n");
 			ptr = strtok(NULL, delim);
 			if(existe(listaCli, m.nome) == 0){
 				listaCli = adicionarCli(listaCli, m, ptr);
@@ -106,11 +107,11 @@ void processMsg(mensagem m){
 				}
 
 				// executa jogo 
-
+			fprintf(stderr, "executa jogo \n");
 				int FP[2];
 				int PF[2];
 
-				char jogo_stream[400];
+				char jogo_stream[400]= {0};
 				// 0 leitura / 1 escrita
 				//FDs 0  stdin / 1 stdout / 2 stderr / 3 canal[0] / 4 canal[1]
 				pipe(FP);
@@ -121,10 +122,10 @@ void processMsg(mensagem m){
 				int res = fork();
 				if(res == 0){
 					// filho 	
-					close(PF[0]);
-					close(0);
-					dup(PF[1]);
 					close(PF[1]);
+					close(0);//fechar stdin
+					dup(PF[0]);
+					close(PF[0]);
 
 					close(FP[0]);
 					close(1);
@@ -133,18 +134,38 @@ void processMsg(mensagem m){
 				
 					//FDs 0  stdin / canal[1] * / 2 stderr / 3 canal[0] / 4 canal[1]
 					execl("g_jogo", "g_jogo", NULL);	
-
+					printf("erro jogo\n");
+					//sleep(30);
+					exit(3);
 				} 
 				close(FP[1]);
-				while((n=read(FP[0], jogo_stream, 99))  == 99){
-				jogo_stream[n] = '\0';
-				printf("AQUI LEU :%s\n", jogo_stream);
-				write(PF[1], "testar enviu", 12);
+				close(PF[0]);
+					fprintf(stderr, "fifo %d \n", FP[0]);
+				while(1){
+				ssize_t count = read(FP[0], jogo_stream, 399); 
+					if(count > 0){
+						printf("leu %d\n",count);
+						write(1, jogo_stream, count);
+					}
+					/*if(count == -1){
+						continue;		
+					}else if(count == 0){
+						break;
+					}else{
+						jogo_stream[count] = '\0';
+						//write(STDIN_FILENO, jogo_stream, count);
+						printf("leu\n");
+					}	
+					*/
+					//fprintf(stderr,"LEU :%s\n", jogo_stream);
+				//write(PF[1], "testar enviu", 12);
 				}
 				//	RES(c_pipe, jogo_stream);
 				
-				close(FP[0]);
-
+			
+				int cStatus = 0;
+				waitpid(res, &cStatus, 0);
+				printf("status :%d\n", cStatus);
 
 			}else {
 				fprintf(stderr, "Mensagem enviada para \"%s\".\n", m.nome);
