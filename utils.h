@@ -14,6 +14,7 @@ struct c {
 	char pid[100];
 	char nome[100];
 	char jogo[100];
+	int pipesJogo[2];
 	char ultimaMsg[400];
 	int pontos;
 	pcliente prox;
@@ -26,6 +27,18 @@ struct m {
 	char msg[400];
 	int erro;
 };
+
+
+typedef struct t TDados;
+struct t {
+	int pipe;
+	char pid[100];
+	pthread_t tid;
+	void * ret;
+};
+
+
+
 
 
 

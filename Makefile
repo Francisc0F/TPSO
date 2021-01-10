@@ -4,7 +4,7 @@ DELETE = admin admin.o utils.o cliente cliente.o cliente_utils.o g_jogo g_jogo.o
 all: admin cliente jogo
 
 admin: admin.o utils.o
-	gcc $(FLGS) -o admin admin.o utils.o
+	gcc $(FLGS) -o admin admin.o utils.o -lpthread
 
 admin.o: admin.c utils.h
 	gcc -c admin.c

@@ -7,6 +7,7 @@
 #include <sys/select.h>
 #include <sys/wait.h>
 #include <fcntl.h>
+#include <pthread.h>
 #include <time.h>
 #include <signal.h>
 #include "utils.h"
@@ -75,6 +76,35 @@ void removerTodosCli(){
 	}
 }
 
+void * lerPipeAnonimo(void * arg){
+	char stream[400];
+	TDados * info = (TDados *) arg; 
+	while(1){
+		ssize_t count = read(info->pipe, stream, 399); 
+		if(count > 0){
+		stream[count] = '\0';
+	
+		char cpipe = getFifoCliWithPid(info->pid);
+		RES(cpipe, stream);
+		//fprintf(stderr,"%s",stream);
+				
+		}else {
+		}
+	}
+}
+
+
+void * escrevePipeAnonimo(void * arg){
+	char stream[400];
+	TDados * info = (TDados *) arg; 
+	while(1){
+	fprintf(stderr,"escreve para jogo \n",stream);
+	scanf("%s",stream);
+	write(info->pipe, strcat(stream, "\n"), strlen(stream) + 1);
+	}
+}
+
+
 void processMsg(mensagem m){
 	fprintf(stderr, "\nMensagem recebida de \"%s\".\n", m.nome);
 	int count = 0 ;
@@ -104,16 +134,12 @@ void processMsg(mensagem m){
 				}else{
 					fprintf(stderr, "Mensagem enviada para \"%s\".\n", m.nome);
 					ERROR(c_pipe,"Erro: adicionar pessoa;");
+					return;
 				}
 
 				// executa jogo 
-			fprintf(stderr, "executa jogo \n");
 				int FP[2];
 				int PF[2];
-
-				char jogo_stream[400]= {0};
-				// 0 leitura / 1 escrita
-				//FDs 0  stdin / 1 stdout / 2 stderr / 3 canal[0] / 4 canal[1]
 				pipe(FP);
 				pipe(PF);
 				
@@ -128,11 +154,10 @@ void processMsg(mensagem m){
 					close(PF[0]);
 
 					close(FP[0]);
-					close(1);
+					close(1);//fechar stdout
 					dup(FP[1]);
 					close(FP[1]);
 				
-					//FDs 0  stdin / canal[1] * / 2 stderr / 3 canal[0] / 4 canal[1]
 					execl("g_jogo", "g_jogo", NULL);	
 					printf("erro jogo\n");
 					//sleep(30);
@@ -142,34 +167,27 @@ void processMsg(mensagem m){
 				close(PF[0]);
 
 				char resJogo[30] = {0};
-				fprintf(stderr, "fifo %d \n", FP[0]);
-				while(1){
-				ssize_t count = read(FP[0], jogo_stream, 399); 
-					fprintf(stderr,"count %d", count);
-					if(count > 0){
-						jogo_stream[count] = '\0';
-						fprintf(stderr,"%s",jogo_stream);
-						
-					}else {
-						scanf("%s", resJogo);
-						fprintf(stderr,"resJogo %s",resJogo);
-						write(PF[1], resJogo, count);
-					}
-					/*if(count == -1){
-						continue;		
-					}else if(count == 0){
-						break;
-					}else{
-						jogo_stream[count] = '\0';
-						//write(STDIN_FILENO, jogo_stream, count);
-						printf("leu\n");
-					}	
-					*/
-					//fprintf(stderr,"LEU :%s\n", jogo_stream);
-				//write(PF[1], "testar enviu", 12);
-				}
-				//	RES(c_pipe, jogo_stream);
-				
+				// fprintf(stderr, "fifo %d \n", FP[0]);
+				TDados le;
+				strcpy(le.pid, m.pid);
+				le.pipe = FP[0];
+
+				TDados escreve;
+				strcpy(escreve.pid, m.pid);
+				escreve.pipe = PF[1];
+
+				int t_leJogo = pthread_create(
+					& le.tid,
+					NULL,
+					lerPipeAnonimo,
+					(void *) &le);
+/*
+				int t_ecreveJogo = pthread_create(
+					& escreve.tid,
+					NULL,
+					escrevePipeAnonimo,
+					(void *) &escreve);
+				*/
 			
 				int cStatus = 0;
 				waitpid(res, &cStatus, 0);
@@ -213,7 +231,7 @@ void processMsg(mensagem m){
 			}
 			
 		}else{
-			perror("mensagem invalida lida.\n");
+			
 		}
 		break;
 
