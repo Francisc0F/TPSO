@@ -64,8 +64,8 @@ void removerTodosCli(){
   	pcliente aux = listaCli;
 
 	while(aux != NULL){
-		char fifo[100] = "";
-		strcpy(fifo, getFifoCliWithPid(aux->pid));
+		char fifo[100] = {0};
+		getFifoCliWithPid(fifo, aux->pid);
 
 		
 	 	RES(fifo, "removido");
@@ -83,9 +83,10 @@ void * lerPipeAnonimo(void * arg){
 		ssize_t count = read(info->pipe, stream, 399); 
 		if(count > 0){
 		stream[count] = '\0';
-	
-		char cpipe = getFifoCliWithPid(info->pid);
-		RES(cpipe, stream);
+
+		char fifo[100] = {0};
+		getFifoCliWithPid(fifo, info->pid);
+		RES(fifo, stream);
 		//fprintf(stderr,"%s",stream);
 				
 		}else {
@@ -472,8 +473,8 @@ int main(int argc , char **argv) {
 		  			continue;
 		  		}else {
 		  			 
-		  			char fifo[100] = "";
-					strcpy(fifo, getFifoCliWithPid(c->pid));
+		  			char fifo[100] = {0};
+					getFifoCliWithPid(fifo, c->pid);
 
 		  			listaCli = removerCliente(listaCli, nome);
 

@@ -183,10 +183,8 @@ void menu() {
 
 // string utils
 
-char * getFifoCliWithPid( char * pid){
+void getFifoCliWithPid(char fifoName[], char * pid){
 
-	char prefixo[5] = "";
-	strcpy(prefixo, CLIPREFIXO) ;
-
-	return strcat(prefixo, pid);
+	strcpy(fifoName, CLIPREFIXO) ;
+	strcat(fifoName, pid);
 }

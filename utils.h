@@ -63,9 +63,7 @@ void RES(char * c_pipe, char * info);
 
 void ERROR(char * c_pipe, char * errorMsg);
 
-
-
-char * getFifoCliWithPid(char * pid);
+void getFifoCliWithPid(char fifoName[], char * pid);
 
 void splitString(char * str, char * delim, char *dest , int * count);
 

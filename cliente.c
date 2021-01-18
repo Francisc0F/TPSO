@@ -16,24 +16,20 @@ int fd_cl;
 int fd; 
 
 
-char * getFifoName( char * buffer){
-
-  	char pidStr[100];
+void getFifoName( char fifo[]){
+  	char pidStr[100]= {0};
   	sprintf(pidStr, "%d", getpid());
-
-	char prefixo[100] = CLIPREFIXO;
-
-	buffer = strcat(prefixo, pidStr);
-	return buffer;
+  	strcpy(fifo, CLIPREFIXO);
+  	//snprintf(fifo, sizeof(fifo),  "%s")
+	strcat(fifo, pidStr);
 }
 
 
 
 void terminar(){
 	printf("Cliente terminado.\n");
-	char * fifo = NULL;
-	fifo = getFifoName(fifo);
-
+	char fifo[100] = {0};
+	getFifoName(fifo);
 	unlink(fifo);
 
 	close(fd_cl);
@@ -97,9 +93,9 @@ int main(int argc, char**argv) {
 	char pidStr[100];
   	sprintf(pidStr, "%d", getpid());
 
-	char * fifo = NULL;
-	fifo = getFifoName(fifo);
-	
+	char fifo[100] = {0};
+	getFifoName(fifo);
+
 	mkfifo(fifo, 0666); 
 
 	fd_cl = open(fifo, O_RDWR | O_NONBLOCK); 	
