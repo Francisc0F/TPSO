@@ -27,7 +27,7 @@ void clienteEscreve(int fd, char * nome, char * texto){
 			perror("error pid.\n");
 		}
 
-		mensagem info = {};
+		mensagem info;
 	
 		strcpy(info.nome, nome);
 		char pidStr[100];
@@ -40,6 +40,7 @@ void clienteEscreve(int fd, char * nome, char * texto){
 		if(write(fd, &info, sizeof(info)) != sizeof(info)){
 			fprintf(stderr, "clienteEscreve write Sizeof(info)- ERROR");
 		}
+		fprintf(stderr, "escreveu");
 	
 	}else {
 		fprintf(stderr, "fopen (%s, r); - ERROR", ADMINTEMP);

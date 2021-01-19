@@ -77,7 +77,7 @@ void removerTodosCli(){
 }
 
 void * lerPipeAnonimo(void * arg){
-	char stream[400];
+	char stream[400] = {0};
 	TDados * info = (TDados *) arg; 
 	while(1){
 		ssize_t count = read(info->pipe, stream, 399); 
@@ -96,12 +96,12 @@ void * lerPipeAnonimo(void * arg){
 
 
 void * escrevePipeAnonimo(void * arg){
-	char stream[400];
+	char stream[400] = {0};
 	TDados * info = (TDados *) arg; 
 	while(1){
-	fprintf(stderr,"escreve para jogo \n",stream);
-	scanf("%s",stream);
-	write(info->pipe, strcat(stream, "\n"), strlen(stream) + 1);
+		fprintf(stderr,"escreve para jogo \n",stream);
+		scanf("%s",stream);
+		write(info->pipe, strcat(stream, "\0"), strlen(stream) + 1);
 	}
 }
 
@@ -124,7 +124,7 @@ void processMsg(mensagem m){
 		count++;
 		// fazer login 	
 		if(strcmp(ptr, "login") == 0 ){
-		printf("login\n");
+			printf("login\n");
 			ptr = strtok(NULL, delim);
 			if(existe(listaCli, m.nome) == 0){
 				listaCli = adicionarCli(listaCli, m, ptr);
@@ -167,31 +167,34 @@ void processMsg(mensagem m){
 				close(FP[1]);
 				close(PF[0]);
 
-				char resJogo[30] = {0};
 				// fprintf(stderr, "fifo %d \n", FP[0]);
 				TDados le;
 				strcpy(le.pid, m.pid);
 				le.pipe = FP[0];
 
-				TDados escreve;
-				strcpy(escreve.pid, m.pid);
-				escreve.pipe = PF[1];
+				
 
 				int t_leJogo = pthread_create(
 					& le.tid,
 					NULL,
 					lerPipeAnonimo,
 					(void *) &le);
-/*
+
+				/*
+				testa jogo
 				int t_ecreveJogo = pthread_create(
 					& escreve.tid,
 					NULL,
 					escrevePipeAnonimo,
 					(void *) &escreve);
-				*/
-			
+					*/
+				pcliente c = getClienteByName(listaCli, m.nome);
+				c->pipesJogo[0] = FP[0];
+				c->pipesJogo[1] = PF[1];
+				
+					
 				int cStatus = 0;
-				waitpid(res, &cStatus, 0);
+				//waitpid(res, &cStatus, 0);
 				printf("status :%d\n", cStatus);
 
 			}else {
@@ -221,7 +224,7 @@ void processMsg(mensagem m){
 				}
 
 		}else if(strcmp(ptr, "#quit") == 0 ){
-		listaCli = removerCliente(listaCli, m.nome);
+			listaCli = removerCliente(listaCli, m.nome);
 			if(numCli > countCli){
 				fprintf(stderr, "Mensagem enviada para \"%s\".\n", m.nome);
 				OK(c_pipe);
@@ -232,7 +235,18 @@ void processMsg(mensagem m){
 			}
 			
 		}else{
-			
+			fprintf(stderr, "Aqui ");
+			// escreve no jogo respetivo
+			pcliente c = getClienteByName(listaCli, m.nome);
+			if(c == NULL){
+				return;
+			}	
+
+			TDados escreve;
+			strcpy(escreve.pid, m.pid);
+			escreve.pipe = c->pipesJogo[1];
+			escrevePipeAnonimo(&escreve);
+
 		}
 		break;
 
@@ -460,8 +474,7 @@ int main(int argc , char **argv) {
 		  		memset(nome, '\0',100);
 		  		
 		  		int i ;
-		  		for (i = 1; i < strlen(cmd); i++)
-		  		{
+		  		for (i = 1; i < strlen(cmd); i++){
 		  			nome[(i-1)] = cmd[i];
 		  		}
 		  	
