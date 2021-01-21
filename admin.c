@@ -78,16 +78,21 @@ void removerTodosCli(){
 
 void * lerPipeAnonimo(void * arg){
 	char stream[400] = {0};
-	TDados * info = (TDados *) arg; 
-	while(1){
-		ssize_t count = read(info->pipe, stream, 399); 
-		if(count > 0){
-		stream[count] = '\0';
+	TDados * info = (TDados *) arg;
+	int pip = info->pipe;
+	char pid[100];
+	strcpy(pid, info->pid);
 
-		char fifo[100] = {0};
-		getFifoCliWithPid(fifo, info->pid);
-		RES(fifo, stream);
-		//fprintf(stderr,"%s",stream);
+	while(1){
+		fprintf(stderr,"inicia leitura \n");
+		ssize_t count = read(pip, stream, 399); 
+		if(count > 0){
+			stream[count] = '\0';
+
+			char fifo[100] = {0};
+			getFifoCliWithPid(fifo, pid);
+			RES(fifo, stream);
+			fprintf(stderr,"leu %s",stream);
 				
 		}else {
 		}
@@ -95,14 +100,24 @@ void * lerPipeAnonimo(void * arg){
 }
 
 
-void * escrevePipeAnonimo(void * arg){
-	char stream[400] = {0};
+/*void * escrevePipeAnonimot(void * arg){
 	TDados * info = (TDados *) arg; 
+	char str[400] = {0};
 	while(1){
-		fprintf(stderr,"escreve para jogo \n",stream);
-		scanf("%s",stream);
-		write(info->pipe, strcat(stream, "\0"), strlen(stream) + 1);
+		fprintf(stderr, "escreve pra filho: \n");
+		scanf("%s",str);
+		write(info->pipe, strcat(str, "\0"), strlen(str));
+		
 	}
+}*/
+
+
+void escrevePipeAnonimo(void * arg){
+	TDados * info = (TDados *) arg; 
+
+	fprintf(stderr,"escreveu: %s\n",info->msg);
+
+	write(info->pipe, strcat(info->msg, "\n"), strlen(info->msg) + 1);
 }
 
 
@@ -172,30 +187,32 @@ void processMsg(mensagem m){
 				strcpy(le.pid, m.pid);
 				le.pipe = FP[0];
 
-				
-
 				int t_leJogo = pthread_create(
 					& le.tid,
 					NULL,
 					lerPipeAnonimo,
 					(void *) &le);
 
-				/*
-				testa jogo
-				int t_ecreveJogo = pthread_create(
+				
+				//TDados escreve;
+				//strcpy(escreve.pid, m.pid);
+				//escreve.pipe = PF[1];
+
+				//testa jogo
+				/*int t_ecreveJogo = pthread_create(
 					& escreve.tid,
 					NULL,
-					escrevePipeAnonimo,
-					(void *) &escreve);
-					*/
+					escrevePipeAnonimot,
+					(void *) &escreve);*/
+					
 				pcliente c = getClienteByName(listaCli, m.nome);
 				c->pipesJogo[0] = FP[0];
 				c->pipesJogo[1] = PF[1];
 				
 					
-				int cStatus = 0;
+				//int cStatus = 0;
 				//waitpid(res, &cStatus, 0);
-				printf("status :%d\n", cStatus);
+				//printf("passou wait :%d\n", cStatus);
 
 			}else {
 				fprintf(stderr, "Mensagem enviada para \"%s\".\n", m.nome);
@@ -235,7 +252,6 @@ void processMsg(mensagem m){
 			}
 			
 		}else{
-			fprintf(stderr, "Aqui ");
 			// escreve no jogo respetivo
 			pcliente c = getClienteByName(listaCli, m.nome);
 			if(c == NULL){
@@ -245,8 +261,9 @@ void processMsg(mensagem m){
 			TDados escreve;
 			strcpy(escreve.pid, m.pid);
 			escreve.pipe = c->pipesJogo[1];
+			strcpy(escreve.msg, m.msg);
 			escrevePipeAnonimo(&escreve);
-
+				
 		}
 		break;
 

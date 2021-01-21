@@ -197,7 +197,7 @@ int main(int argc, char**argv) {
 					break;
 				
 	  		}else{
-	  			printf("STD IN PARA o JOGO %s\n", cmd);
+	  			printf("para jogo %s\n", cmd);
 	  			// escreve para jogo
 	  			clienteEscreve(fd, nome, cmd);
 

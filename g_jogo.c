@@ -18,9 +18,10 @@ void sig_handler(int sig, siginfo_t *siginfo, void *context){
 }
 
 int main(int argc, char**argv) {
-	// sinais
 
 	setbuf(stdout, NULL);
+
+	// sinais
 	struct sigaction act;
 	memset(&act, '\0', sizeof(act));
 	int pid = getpid();

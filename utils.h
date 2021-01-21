@@ -32,6 +32,7 @@ struct m {
 typedef struct t TDados;
 struct t {
 	int pipe;
+	char msg[100];
 	char pid[100];
 	pthread_t tid;
 	void * ret;
