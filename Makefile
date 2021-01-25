@@ -1,5 +1,5 @@
 FLGS = -g -Wall 
-DELETE = admin admin.o utils.o cliente cliente.o cliente_utils.o g_jogo g_jogo.o
+DELETE = admin admin.o utils.o cliente cliente.o cliente_utils.o jogos/g_jogo jogos/g_jogo.o
 
 all: admin cliente jogo
 
@@ -23,11 +23,11 @@ utils.o: utils.c
 	gcc -c utils.c
 
 
-jogo: g_jogo.o
-	gcc $(FLGS) -o g_jogo g_jogo.o
+jogo: jogo.o
+	gcc $(FLGS) -o jogos/g_jogo jogos/g_jogo.o
 
-g_jogo.o: g_jogo.c
-	gcc -c g_jogo.c
+jogo.o: jogos/g_jogo.c
+	gcc -c jogos/g_jogo.c -o jogos/g_jogo.o
 
 clean: 
 	$(RM) $(DELETE) 

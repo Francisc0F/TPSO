@@ -105,7 +105,7 @@ int main(int argc, char**argv) {
 		terminar();
 	}
 
-  	char info[100];
+  	char info[100] = {0};
   	strcpy(info,"login ");
 
 	while(1){
@@ -197,7 +197,7 @@ int main(int argc, char**argv) {
 					break;
 				
 	  		}else{
-	  			printf("para jogo %s\n", cmd);
+	  			//printf("para jogo %s\n", cmd);
 	  			// escreve para jogo
 	  			clienteEscreve(fd, nome, cmd);
 

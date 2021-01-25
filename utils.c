@@ -11,11 +11,11 @@
 int countCli;
 
 void listaCliente(pcliente aux, FILE * p){
-		fprintf(p, "\n--------------------------------------\n");
+		fprintf(p, "--------------------------------------\n");
 		fprintf(p, "Pid: %s\n", aux->pid);
 		fprintf(p, "Nome: %s\n", aux->nome);
 		fprintf(p, "Ultima msg: %s\n", aux->ultimaMsg);
-		fprintf(p,"--------------------------------------\n");
+		//fprintf(p,"--------------------------------------\n");
 }
 
 pcliente getClienteByName(pcliente lista, char * nome){
@@ -57,20 +57,19 @@ int existe(pcliente lista,char * nome){
 pcliente adicionarCli(pcliente lista, mensagem m, char * pid){
 	pcliente n = malloc(sizeof (cliente));
 
-    memset(n, '\0', sizeof(cliente));
+    //memset(n, '\0', sizeof(cliente));
 
     if (n == NULL) {
     	perror("adiconarCli - ERROR\n");
     	return NULL;
     }
     countCli++;	
-    memset(n->pid, '\0', sizeof(n->pid));
-
 	strcpy(n->pid , pid);
-
     strcpy(n->nome, m.nome);
-
 	strcpy(n->ultimaMsg, m.msg);
+	n->leThread = NULL;
+	
+ 	fprintf(stderr, "pid \"%s\"\n",n->pid);
 
 	if(lista == NULL){
 	 n->prox = lista;

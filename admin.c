@@ -10,6 +10,7 @@
 #include <pthread.h>
 #include <time.h>
 #include <signal.h>
+#include <dirent.h>
 #include "utils.h"
 
 
@@ -18,27 +19,153 @@ int fdServer = 0;
 int countCli = 0;
 pcliente listaCli = NULL;
 
+void * lerPipeAnonimo(void * arg){
+	char stream[400] = {0};
+	TDados * info = (TDados *) arg;
+
+	int pip = info->pipe;
+	char pid[100];
+	strcpy(pid, info->pid);
+
+	printf("THREAD info->pid %s\n",pid );	
+	printf("info->pip %d\n",pip );	
+
+	while(1){
+		//fprintf(stderr,"inicia leitura info->pid %s\n", info->pid);
+		ssize_t count = read(pip, stream, 399); 
+		if(count > 0){
+			stream[count] = '\0';
+			char fifo[100];
+			getFifoCliWithPid(fifo, pid);
+			RES(fifo, stream);
+			//fprintf(stderr,"leu %s",stream);
+				
+		}else {
+		}
+	}
+}
+
+
+void comecarCampeonato(){
+	pcliente at = listaCli;
+	
+
+	while(at != NULL){
+		int FP[2];
+		int PF[2];
+		pipe(FP);
+		pipe(PF);
+
+		at->pipesJogo[0] = FP[0];
+		at->pipesJogo[1] = PF[1];
+
+		int n;
+		int res = fork();
+		if(res == 0){
+			// filho 	
+			close(PF[1]);
+			close(0);//fechar stdin
+			dup(PF[0]);
+			close(PF[0]);
+
+			close(FP[0]);
+			close(1);//fechar stdout
+			dup(FP[1]);
+			close(FP[1]);
+					
+			execl("jogos/g_jogo", "jogos/g_jogo", NULL);	
+			printf("erro jogo\n");
+			//sleep(30);
+			exit(3);
+		} 
+		close(FP[1]);
+		close(PF[0]);
+
+	
+
+		//listaCliente(at, stdout);
+		at->leThread = malloc(sizeof (TDados));
+		char pid[100];
+		strcpy(pid, at->pid);
+		strcpy(at->leThread->pid, pid);
+		at->leThread->pipe = FP[0];
+
+		//fprintf(stderr,"antes thread %s",pid );
+		int t_leJogo = pthread_create(
+		& at->leThread->tid,
+		NULL,
+		lerPipeAnonimo,
+		(void *) at->leThread);
+		if(t_leJogo == 0){
+			//fprintf(stderr,"Thread Created");
+		}
+
+		//sleep(1);	
+		at = at->prox;	
+	}
+
+}
+
+
+
+
+int validaDirname(char * name){
+	char pre[2]= "g_";
+	// nao funciona com pontos no nome do jogo 
+	char * dot = strrchr(name, '.');
+	if(pre[0] == *name){
+		name++;
+		if(pre[1] == *name ){
+			if(dot == NULL){
+				return 1;
+			}	
+		}
+	}
+	return 0;
+}
+
+
+void mostraJogos(char * dirname){
+	int n = 0;	
+	DIR * dir;
+	struct dirent * e;
+	if((dir = opendir(dirname)) == NULL){
+		perror("\n erro opendir");
+	}else{
+		while( (e = readdir(dir)) != NULL){
+			if(validaDirname(e->d_name) == 1){
+				printf("%s\n",e->d_name);
+				n++;
+			}
+		}
+		closedir(dir);
+	}
+	if(n==0)
+		printf("Nao ha jogos na diretoria indicada.\n");
+
+}
 
 void terminar(){
 	
 	FILE * fp;
 	fp = fopen (ADMINTEMP,"r");
+	int pid = 0;
 
 	if(fp){
-		int pid = 0;
 		fscanf(fp, "%d", &pid);
-		printf("Admin PID : %d \n", pid);	
+		//printf("Admin PID : %d \n", pid);	
    		if (pid == getpid()){
    			int del = remove(ADMINTEMP);
-   			if(!del)
-      			printf("temp file apagada.\n");
+   			if(!del){
+      			//printf("temp file apagada.\n");
+   			}
       		printf("Admin Terminado.\n");
   		}	
 
 	}
 
 
-	unlink("./serverFIFO");
+	unlink(SERVERFIFO);
 		
 }
 
@@ -75,29 +202,18 @@ void removerTodosCli(){
 		aux = aux->prox;
 	}
 }
+void BroadCastRES(char *  msg){
+	pcliente aux = listaCli;
 
-void * lerPipeAnonimo(void * arg){
-	char stream[400] = {0};
-	TDados * info = (TDados *) arg;
-	int pip = info->pipe;
-	char pid[100];
-	strcpy(pid, info->pid);
+	while(aux != NULL){
+		char fifo[100] = {0};
+		getFifoCliWithPid(fifo, aux->pid);
 
-	while(1){
-		fprintf(stderr,"inicia leitura \n");
-		ssize_t count = read(pip, stream, 399); 
-		if(count > 0){
-			stream[count] = '\0';
-
-			char fifo[100] = {0};
-			getFifoCliWithPid(fifo, pid);
-			RES(fifo, stream);
-			fprintf(stderr,"leu %s",stream);
-				
-		}else {
-		}
+	 	RES(fifo, msg);
+		aux = aux->prox;
 	}
 }
+
 
 
 /*void * escrevePipeAnonimot(void * arg){
@@ -122,17 +238,24 @@ void escrevePipeAnonimo(void * arg){
 
 
 void processMsg(mensagem m){
-	fprintf(stderr, "\nMensagem recebida de \"%s\".\n", m.nome);
+	//fprintf(stderr, "\nMensagem recebida de \"%s\".\n", m.nome);
 	int count = 0 ;
 	char * delim = " ";
-	char * ptr = strtok(m.msg, delim);
-	
 
+	char msg[200] = {0};
+	char pid[100] = {0};
+	char nome[100] = {0};
+
+	strcpy(msg, m.msg);
+	strcpy(pid, m.pid);
+	strcpy(nome, m.nome);
+
+	char * ptr = strtok(msg, delim);
 	int numCli = countCli;
 
-	char prefixo[20];
+	char prefixo[20] = {0};
 	strcpy(prefixo, CLIPREFIXO);
-	char * c_pipe = strcat(prefixo, m.pid);
+	char * c_pipe = strcat(prefixo, pid);
 
 	int i = 0;
 	while(ptr != NULL){
@@ -141,25 +264,37 @@ void processMsg(mensagem m){
 		if(strcmp(ptr, "login") == 0 ){
 			printf("login\n");
 			ptr = strtok(NULL, delim);
-			if(existe(listaCli, m.nome) == 0){
-				listaCli = adicionarCli(listaCli, m, ptr);
+			if(existe(listaCli, nome) == 0){
+				//fprintf(stderr, "adiciona\n");
+				listaCli = adicionarCli(listaCli, m, pid);
 				if(numCli < countCli){
-					fprintf(stderr, "Mensagem enviada para \"%s\".\n", m.nome);
-					OK(c_pipe);
-				
+					fprintf(stderr, "Novo jogador \"%s\".\n", nome);
+					if(countCli == 2){
+						BroadCastRES("\n!!!Campeonato comecou!!!");
+						comecarCampeonato();
+
+					} else {
+						RES(c_pipe, "Aguarde que campeonato comece.");
+					}
+					
 				}else{
-					fprintf(stderr, "Mensagem enviada para \"%s\".\n", m.nome);
-					ERROR(c_pipe,"Erro: adicionar pessoa;");
+					//fprintf(stderr, "Mensagem enviada para \"%s\".\n", nome);
+					ERROR(c_pipe,"Erro a adicionar pessoa;");
 					return;
 				}
 
 				// executa jogo 
-				int FP[2];
+			/*	int FP[2];
 				int PF[2];
 				pipe(FP);
 				pipe(PF);
 				
 				int n;	
+
+				pcliente c = getClienteByName(listaCli, m.nome);
+				c->pipesJogo[0] = FP[0];
+				c->pipesJogo[1] = PF[1];
+			
 
 				int res = fork();
 				if(res == 0){
@@ -192,23 +327,8 @@ void processMsg(mensagem m){
 					NULL,
 					lerPipeAnonimo,
 					(void *) &le);
-
-				
-				//TDados escreve;
-				//strcpy(escreve.pid, m.pid);
-				//escreve.pipe = PF[1];
-
-				//testa jogo
-				/*int t_ecreveJogo = pthread_create(
-					& escreve.tid,
-					NULL,
-					escrevePipeAnonimot,
-					(void *) &escreve);*/
-					
-				pcliente c = getClienteByName(listaCli, m.nome);
-				c->pipesJogo[0] = FP[0];
-				c->pipesJogo[1] = PF[1];
-				
+*/
+			
 					
 				//int cStatus = 0;
 				//waitpid(res, &cStatus, 0);
@@ -217,6 +337,7 @@ void processMsg(mensagem m){
 			}else {
 				fprintf(stderr, "Mensagem enviada para \"%s\".\n", m.nome);
 				ERROR(c_pipe,"Nome ja existe.");
+				return;
 			}
 
 		}else if(strcmp(ptr, "#mygame") == 0 ){
@@ -274,8 +395,6 @@ void processMsg(mensagem m){
 }
 
 void sig_handler(int sig, siginfo_t *siginfo, void *context){
-		
-		
 	if(sig == SIGINT){
 		if(countCli > 0){
 			removerTodosCli();	
@@ -285,9 +404,7 @@ void sig_handler(int sig, siginfo_t *siginfo, void *context){
 		exit(EXIT_FAILURE);
 	}else if(sig == SIGUSR2){
 
-		
 	}
-
 }
 
 
@@ -297,6 +414,10 @@ int main(int argc , char **argv) {
 	char *pg = NULL;
 	char *m = "MAXPLAYERS";
 	char *pm = NULL;
+	int numJogadoresMax = 30;
+
+	// default dir
+	char currentDir[100] = "/home/francisco/Desktop/so/TP";
 	
 	// sinais
 	struct sigaction act;
@@ -333,19 +454,21 @@ int main(int argc , char **argv) {
 	pg = getenv(g);
 	if(pg == NULL || *pg == '\0' ){
 		printf("Nao foi Possivel Encontrar [%s]\n", g);
-		terminar();
-		return 0;
+	}else{
+		strcpy(currentDir, pg);
 	}
+
 	pm = getenv(m);
 	
 	if(pm == NULL || *pm == '\0'){
 		printf("Nao foi Possivel Encontrar [%s]\n", m);
-		terminar();
-		return 0;
+	
 	}else if(atoi(pm) > 30){
 		printf("[%s] Nao pode ser maior que 30\n", m);
 		terminar();
 		return 0;
+	}else{
+		numJogadoresMax = atoi(pm);
 	}
 
 	int duracaoCamp = 0, tempEspera = 0;
@@ -420,7 +543,6 @@ int main(int argc , char **argv) {
   		exit(EXIT_FAILURE); 
   	}
 		
-
 
 
   	fprintf(stderr,"----------------------------------------------------\n");
@@ -513,7 +635,7 @@ int main(int argc , char **argv) {
 
 		  	}else if(strcmp(cmd, "games")== 0){
 		  			printf("Jogos: \n");
-		  			printf("g_jogos \n");
+		  			mostraJogos(currentDir);
 
 		  	}
 			else if(strcmp(cmd, "exit") == 0){

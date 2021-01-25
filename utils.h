@@ -9,6 +9,17 @@
 
 extern int countCli;
 
+
+typedef struct t TDados, *pTDados;
+struct t {
+	int pipe;
+	char msg[100];
+	char pid[100];
+	pthread_t tid;
+	void * ret;
+};
+
+
 typedef struct c cliente, *pcliente;
 struct c {
 	char pid[100];
@@ -17,7 +28,9 @@ struct c {
 	int pipesJogo[2];
 	char ultimaMsg[400];
 	int pontos;
+	pTDados leThread;
 	pcliente prox;
+
 };
 
 typedef struct m mensagem;
@@ -28,15 +41,6 @@ struct m {
 	int erro;
 };
 
-
-typedef struct t TDados;
-struct t {
-	int pipe;
-	char msg[100];
-	char pid[100];
-	pthread_t tid;
-	void * ret;
-};
 
 
 

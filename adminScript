@@ -1,2 +1,2 @@
-export GAMEDIR=Desktop/so/TP/
+export GAMEDIR=/home/francisco/Desktop/so/TP/jogos
 export MAXPLAYERS=29
