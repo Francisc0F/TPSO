@@ -57,8 +57,6 @@ int existe(pcliente lista,char * nome){
 pcliente adicionarCli(pcliente lista, mensagem m, char * pid){
 	pcliente n = malloc(sizeof (cliente));
 
-    //memset(n, '\0', sizeof(cliente));
-
     if (n == NULL) {
     	perror("adiconarCli - ERROR\n");
     	return NULL;
@@ -68,8 +66,8 @@ pcliente adicionarCli(pcliente lista, mensagem m, char * pid){
     strcpy(n->nome, m.nome);
 	strcpy(n->ultimaMsg, m.msg);
 	n->leThread = NULL;
-	
- 	fprintf(stderr, "pid \"%s\"\n",n->pid);
+	n->s = 0;
+ 	//fprintf(stderr, "pid \"%s\"\n",n->pid);
 
 	if(lista == NULL){
 	 n->prox = lista;
@@ -172,9 +170,9 @@ void menu() {
     puts("\nplayers - Listar jogadores em jogo.");
     puts("games- Listar jogos disponiveis. ");
     puts("k<user name> - Remover jogador de campeonato.");
-    //puts("s<user name> - Suspender ligacao de jogador.");
-    // puts("r<user name> - Retomar ligacao de jogador.");
-    // puts("end - Termina campeonato.");
+    puts("s<user name> - Suspender ligacao de jogador.");
+    puts("r<user name> - Retomar ligacao de jogador.");
+    puts("end - Termina campeonato.");
     puts("exit - Desligar server.");
  
 }
@@ -186,4 +184,11 @@ void getFifoCliWithPid(char fifoName[], char * pid){
 
 	strcpy(fifoName, CLIPREFIXO) ;
 	strcat(fifoName, pid);
+}
+
+
+void getNomeUser(char * nome, char * string){
+	for (int i = 1; i < strlen(string); i++){
+		nome[(i-1)] = string[i];
+	}
 }

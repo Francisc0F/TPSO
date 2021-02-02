@@ -61,17 +61,18 @@ void comecarCampeonato(){
 
 		int n;
 		int res = fork();
+		at->pidJogoAtual = res;
 		if(res == 0){
 			// filho 	
-			close(PF[1]);
+			close(PF[1]);// nao precisa da extremidade de escrita no pipe PF
 			close(0);//fechar stdin
-			dup(PF[0]);
-			close(PF[0]);
+			dup(PF[0]);//duplica parte de leitura, para ler extremidade de leitura PF 
+			close(PF[0]);// limpa duplicacao do PF[0] desnecessaria
 
-			close(FP[0]);
+			close(FP[0]);// nao precisa da extremidade de leitura no pipe FP
 			close(1);//fechar stdout
-			dup(FP[1]);
-			close(FP[1]);
+			dup(FP[1]);//duplica parte de escrita, mete stdout apontar pra parte de escrita do FP
+			close(FP[1]);// limpa duplicacao do FP[1] desnecessaria
 					
 			execl("jogos/g_jogo", "jogos/g_jogo", NULL);	
 			printf("erro jogo\n");
@@ -180,7 +181,7 @@ int checkRunning(){
 	} else {
         fp = fopen (ADMINTEMP,"w");
 		if(fp != NULL){
-        		fprintf (fp, "%d",getpid());
+			fprintf (fp, "%d",getpid());
 		}
 		fclose(fp);
 	}
@@ -215,24 +216,9 @@ void BroadCastRES(char *  msg){
 }
 
 
-
-/*void * escrevePipeAnonimot(void * arg){
-	TDados * info = (TDados *) arg; 
-	char str[400] = {0};
-	while(1){
-		fprintf(stderr, "escreve pra filho: \n");
-		scanf("%s",str);
-		write(info->pipe, strcat(str, "\0"), strlen(str));
-		
-	}
-}*/
-
-
 void escrevePipeAnonimo(void * arg){
 	TDados * info = (TDados *) arg; 
-
-	fprintf(stderr,"escreveu: %s\n",info->msg);
-
+	//fprintf(stderr,"escreveu: %s\n",info->msg);
 	write(info->pipe, strcat(info->msg, "\n"), strlen(info->msg) + 1);
 }
 
@@ -265,7 +251,6 @@ void processMsg(mensagem m){
 			printf("login\n");
 			ptr = strtok(NULL, delim);
 			if(existe(listaCli, nome) == 0){
-				//fprintf(stderr, "adiciona\n");
 				listaCli = adicionarCli(listaCli, m, pid);
 				if(numCli < countCli){
 					fprintf(stderr, "Novo jogador \"%s\".\n", nome);
@@ -283,56 +268,6 @@ void processMsg(mensagem m){
 					return;
 				}
 
-				// executa jogo 
-			/*	int FP[2];
-				int PF[2];
-				pipe(FP);
-				pipe(PF);
-				
-				int n;	
-
-				pcliente c = getClienteByName(listaCli, m.nome);
-				c->pipesJogo[0] = FP[0];
-				c->pipesJogo[1] = PF[1];
-			
-
-				int res = fork();
-				if(res == 0){
-					// filho 	
-					close(PF[1]);
-					close(0);//fechar stdin
-					dup(PF[0]);
-					close(PF[0]);
-
-					close(FP[0]);
-					close(1);//fechar stdout
-					dup(FP[1]);
-					close(FP[1]);
-				
-					execl("g_jogo", "g_jogo", NULL);	
-					printf("erro jogo\n");
-					//sleep(30);
-					exit(3);
-				} 
-				close(FP[1]);
-				close(PF[0]);
-
-				// fprintf(stderr, "fifo %d \n", FP[0]);
-				TDados le;
-				strcpy(le.pid, m.pid);
-				le.pipe = FP[0];
-
-				int t_leJogo = pthread_create(
-					& le.tid,
-					NULL,
-					lerPipeAnonimo,
-					(void *) &le);
-*/
-			
-					
-				//int cStatus = 0;
-				//waitpid(res, &cStatus, 0);
-				//printf("passou wait :%d\n", cStatus);
 
 			}else {
 				fprintf(stderr, "Mensagem enviada para \"%s\".\n", m.nome);
@@ -377,14 +312,13 @@ void processMsg(mensagem m){
 			pcliente c = getClienteByName(listaCli, m.nome);
 			if(c == NULL){
 				return;
+			}else if(c->s == 0){
+				TDados escreve;
+				strcpy(escreve.pid, m.pid);
+				escreve.pipe = c->pipesJogo[1];
+				strcpy(escreve.msg, m.msg);
+				escrevePipeAnonimo(&escreve);
 			}	
-
-			TDados escreve;
-			strcpy(escreve.pid, m.pid);
-			escreve.pipe = c->pipesJogo[1];
-			strcpy(escreve.msg, m.msg);
-			escrevePipeAnonimo(&escreve);
-				
 		}
 		break;
 
@@ -609,15 +543,8 @@ int main(int argc , char **argv) {
 		  			printf("faltam parametros.\n");
 		  			continue;
 		  		}
-		  		char nome[100];
-		  		memset(nome, '\0',100);
-		  		
-		  		int i ;
-		  		for (i = 1; i < strlen(cmd); i++){
-		  			nome[(i-1)] = cmd[i];
-		  		}
-		  	
-
+		  		char nome[100]= {0};
+		  		getNomeUser(nome, cmd);
 		  		pcliente c =  getClienteByName(listaCli, nome);
 
 		  		if(c == NULL){
@@ -631,6 +558,44 @@ int main(int argc , char **argv) {
 		  			listaCli = removerCliente(listaCli, nome);
 
 		  			RES(fifo, "removido");
+		  		}
+
+		  	}else if(cmd[0] == 's'){
+		  		if(strlen(cmd) == 1){
+		  			printf("faltam parametros.\n");
+		  			continue;
+		  		}
+		  		char nome[100]= {0};
+		  		getNomeUser(nome, cmd);
+		  		pcliente c =  getClienteByName(listaCli, nome);
+		  		c->s = 1;	
+
+		  		if(c == NULL){
+		  			printf("Cliente \"%s\" nao existe. \n",nome );
+		  			continue;
+		  		}else {
+		  			char fifo[100] = {0};
+					getFifoCliWithPid(fifo, c->pid);
+		  			RES(fifo, "ligacao suspendida.");
+		  		}
+
+		  	}else if(cmd[0] == 'r'){
+		  		if(strlen(cmd) == 1){
+		  			printf("faltam parametros.\n");
+		  			continue;
+		  		}
+		  		char nome[100]= {0};
+		  		getNomeUser(nome, cmd);
+		  		pcliente c =  getClienteByName(listaCli, nome);
+				c->s = 0;	
+
+		  		if(c == NULL){
+		  			printf("Cliente \"%s\" nao existe. \n",nome );
+		  			continue;
+		  		}else {
+		  			char fifo[100] = {0};
+					getFifoCliWithPid(fifo, c->pid);
+		  			RES(fifo, "ligacao retomada.");
 		  		}
 
 		  	}else if(strcmp(cmd, "games")== 0){

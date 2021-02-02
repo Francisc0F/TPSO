@@ -27,7 +27,9 @@ struct c {
 	char jogo[100];
 	int pipesJogo[2];
 	char ultimaMsg[400];
+	int pidJogoAtual;
 	int pontos;
+	int s;
 	pTDados leThread;
 	pcliente prox;
 
@@ -73,6 +75,9 @@ void getFifoCliWithPid(char fifoName[], char * pid);
 void splitString(char * str, char * delim, char *dest , int * count);
 
 void menu();
+
+
+void getNomeUser(char * nome, char * string);
 
 
 #endif 
