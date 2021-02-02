@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <signal.h>
 
-#define TAM 10
+#define TAM 2
 
 int pontos = 0 ;
 
@@ -36,8 +36,10 @@ int main(int argc, char**argv) {
 	
 
 	// jogo
-	char listaP[][20] = {"arroz", "feijao", "couve", "lebre", "coelho", "gato", "zebra", "cama", "lisboa", "trump"};
-	char listaInc[][20] = {"ar-oz", "f-i-ao", "cou-e", "le-re", "c-elho", "ga-o", "-ebra", "cam-", "l-s-oa", "t-ump"};
+	//char listaP[][20] = {"arroz", "feijao", "couve", "lebre", "coelho", "gato", "zebra", "cama", "lisboa", "trump"};
+	//char listaInc[][20] = {"ar-oz", "f-i-ao", "cou-e", "le-re", "c-elho", "ga-o", "-ebra", "cam-", "l-s-oa", "t-ump"};
+	char listaP[][20] = {"arroz", "feijao"};
+	char listaInc[][20] = {"ar-oz", "f-i-ao"};
 	char res[30];
 	int nP = 0;
 	int vidas = 3;

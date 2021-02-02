@@ -35,6 +35,8 @@ struct c {
 
 };
 
+extern pcliente listaCli;
+
 typedef struct m mensagem;
 struct m {
 	char nome[100];
@@ -70,14 +72,27 @@ void RES(char * c_pipe, char * info);
 
 void ERROR(char * c_pipe, char * errorMsg);
 
+void menu();
+
 void getFifoCliWithPid(char fifoName[], char * pid);
 
 void splitString(char * str, char * delim, char *dest , int * count);
 
-void menu();
+int validaDirname(char * name);
+
 
 
 void getNomeUser(char * nome, char * string);
 
+void mostraJogos(char * dirname);
+
+int checkRunning();
+
+void removerTodosCli();
+
+void BroadCastRES(char *  msg);
+
+
+void terminarAdmin();
 
 #endif 

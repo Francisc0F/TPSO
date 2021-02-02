@@ -10,7 +10,6 @@
 #include <pthread.h>
 #include <time.h>
 #include <signal.h>
-#include <dirent.h>
 #include "utils.h"
 
 
@@ -30,6 +29,7 @@ void * lerPipeAnonimo(void * arg){
 	printf("THREAD info->pid %s\n",pid );	
 	printf("info->pip %d\n",pip );	
 
+	int tStatus = 1;
 	while(1){
 		//fprintf(stderr,"inicia leitura info->pid %s\n", info->pid);
 		ssize_t count = read(pip, stream, 399); 
@@ -39,181 +39,93 @@ void * lerPipeAnonimo(void * arg){
 			getFifoCliWithPid(fifo, pid);
 			RES(fifo, stream);
 			//fprintf(stderr,"leu %s",stream);
-				
 		}else {
+			break;
 		}
 	}
+	pthread_exit(&tStatus);
+
+	return NULL;
 }
 
+void * waitGameEnd(void * arg){
+	TDados * info = (TDados *) arg;
 
+}
+
+void criarJogo(pcliente at){
+	int FP[2];
+	int PF[2];
+	pipe(FP);
+	pipe(PF);
+
+	at->pipesJogo[0] = FP[0];
+	at->pipesJogo[1] = PF[1];
+
+	int n;
+	int res = fork();
+	if(res == 0){
+		// filho 	
+		close(PF[1]);// nao precisa da extremidade de escrita no pipe PF
+		close(0);//fechar stdin
+		dup(PF[0]);//duplica parte de leitura, para ler extremidade de leitura PF 
+		close(PF[0]);// limpa duplicacao do PF[1] desnecessaria
+
+		close(FP[0]);// nao precisa da extremidade de leitura no pipe FP
+		close(1);//fechar stdout
+		dup(FP[1]);//duplica parte de escrita, mete stdout apontar pra parte de escrita do FP
+		close(FP[1]);// limpa duplicacao do FP[1] desnecessaria
+				
+		execl("jogos/g_jogo", "jogos/g_jogo", NULL);	
+		printf("erro jogo\n");
+		//sleep(30);
+		exit(3);
+	} 
+
+	at->pidJogoAtual = res;
+
+	close(FP[1]);
+	close(PF[0]);
+
+	
+
+	at->leThread = malloc(sizeof (TDados));
+	char pid[100];
+	strcpy(pid, at->pid);
+	strcpy(at->leThread->pid, pid);
+	at->leThread->pipe = FP[0];
+
+	//fprintf(stderr,"antes thread %s",pid );
+	int t_leJogo = pthread_create(
+	& at->leThread->tid,
+	NULL,
+	lerPipeAnonimo,
+	(void *) at->leThread);
+	if(t_leJogo == 0){
+		//fprintf(stderr,"Thread Created");
+	}
+	/*
+	int t_waitGameEnd = pthread_create(
+	& at->leThread->tid,
+	NULL,
+	lerPipeAnonimo,
+	(void *) at->leThread);*/
+
+	if(t_leJogo == 0){
+	//fprintf(stderr,"Thread Created");
+	}
+	
+}
 void comecarCampeonato(){
 	pcliente at = listaCli;
-	
-
 	while(at != NULL){
-		int FP[2];
-		int PF[2];
-		pipe(FP);
-		pipe(PF);
-
-		at->pipesJogo[0] = FP[0];
-		at->pipesJogo[1] = PF[1];
-
-		int n;
-		int res = fork();
-		at->pidJogoAtual = res;
-		if(res == 0){
-			// filho 	
-			close(PF[1]);// nao precisa da extremidade de escrita no pipe PF
-			close(0);//fechar stdin
-			dup(PF[0]);//duplica parte de leitura, para ler extremidade de leitura PF 
-			close(PF[0]);// limpa duplicacao do PF[0] desnecessaria
-
-			close(FP[0]);// nao precisa da extremidade de leitura no pipe FP
-			close(1);//fechar stdout
-			dup(FP[1]);//duplica parte de escrita, mete stdout apontar pra parte de escrita do FP
-			close(FP[1]);// limpa duplicacao do FP[1] desnecessaria
-					
-			execl("jogos/g_jogo", "jogos/g_jogo", NULL);	
-			printf("erro jogo\n");
-			//sleep(30);
-			exit(3);
-		} 
-		close(FP[1]);
-		close(PF[0]);
-
-	
-
-		//listaCliente(at, stdout);
-		at->leThread = malloc(sizeof (TDados));
-		char pid[100];
-		strcpy(pid, at->pid);
-		strcpy(at->leThread->pid, pid);
-		at->leThread->pipe = FP[0];
-
-		//fprintf(stderr,"antes thread %s",pid );
-		int t_leJogo = pthread_create(
-		& at->leThread->tid,
-		NULL,
-		lerPipeAnonimo,
-		(void *) at->leThread);
-		if(t_leJogo == 0){
-			//fprintf(stderr,"Thread Created");
-		}
-
-		//sleep(1);	
-		at = at->prox;	
+		criarJogo(at);
+		at = at->prox;
 	}
 
 }
 
 
-
-
-int validaDirname(char * name){
-	char pre[2]= "g_";
-	// nao funciona com pontos no nome do jogo 
-	char * dot = strrchr(name, '.');
-	if(pre[0] == *name){
-		name++;
-		if(pre[1] == *name ){
-			if(dot == NULL){
-				return 1;
-			}	
-		}
-	}
-	return 0;
-}
-
-
-void mostraJogos(char * dirname){
-	int n = 0;	
-	DIR * dir;
-	struct dirent * e;
-	if((dir = opendir(dirname)) == NULL){
-		perror("\n erro opendir");
-	}else{
-		while( (e = readdir(dir)) != NULL){
-			if(validaDirname(e->d_name) == 1){
-				printf("%s\n",e->d_name);
-				n++;
-			}
-		}
-		closedir(dir);
-	}
-	if(n==0)
-		printf("Nao ha jogos na diretoria indicada.\n");
-
-}
-
-void terminar(){
-	
-	FILE * fp;
-	fp = fopen (ADMINTEMP,"r");
-	int pid = 0;
-
-	if(fp){
-		fscanf(fp, "%d", &pid);
-		//printf("Admin PID : %d \n", pid);	
-   		if (pid == getpid()){
-   			int del = remove(ADMINTEMP);
-   			if(!del){
-      			//printf("temp file apagada.\n");
-   			}
-      		printf("Admin Terminado.\n");
-  		}	
-
-	}
-
-
-	unlink(SERVERFIFO);
-		
-}
-
-int checkRunning(){
-   	FILE * fp;
-	if( access(ADMINTEMP, F_OK ) != -1 ) {
-		fp = fopen (ADMINTEMP,"r");
-		int pid = 0;
-		if((fscanf(fp, "%d", &pid) == 1))
-		return 1;			
-		
-	} else {
-        fp = fopen (ADMINTEMP,"w");
-		if(fp != NULL){
-			fprintf (fp, "%d",getpid());
-		}
-		fclose(fp);
-	}
-	return 0;
-}
-
-void removerTodosCli(){
-  	pcliente aux = listaCli;
-
-	while(aux != NULL){
-		char fifo[100] = {0};
-		getFifoCliWithPid(fifo, aux->pid);
-
-		
-	 	RES(fifo, "removido");
-
-		listaCli = removerCliente(listaCli, aux->nome);	
-		
-		aux = aux->prox;
-	}
-}
-void BroadCastRES(char *  msg){
-	pcliente aux = listaCli;
-
-	while(aux != NULL){
-		char fifo[100] = {0};
-		getFifoCliWithPid(fifo, aux->pid);
-
-	 	RES(fifo, msg);
-		aux = aux->prox;
-	}
-}
 
 
 void escrevePipeAnonimo(void * arg){
@@ -334,7 +246,7 @@ void sig_handler(int sig, siginfo_t *siginfo, void *context){
 			removerTodosCli();	
 		}
 		
-		terminar();
+		terminarAdmin();
 		exit(EXIT_FAILURE);
 	}else if(sig == SIGUSR2){
 
@@ -361,7 +273,7 @@ int main(int argc , char **argv) {
 	act.sa_flags = SA_SIGINFO;
 	if(sigaction(SIGINT, &act, NULL) < 0 ){
 		perror("SIGINT sigaction");
-		terminar();
+		terminarAdmin();
 		return 0;
 	}
 
@@ -373,7 +285,7 @@ int main(int argc , char **argv) {
 
 	if(checkRunning() == 1){
 		perror("already running.");
-		terminar();
+		terminarAdmin();
 		return 1;
 	}
 
@@ -382,7 +294,7 @@ int main(int argc , char **argv) {
 	
 	if(argc > 3){
 		printf("Argumentos a mais\n");
-		terminar();
+		terminarAdmin();
 		return 0;
 	}
 	pg = getenv(g);
@@ -399,7 +311,7 @@ int main(int argc , char **argv) {
 	
 	}else if(atoi(pm) > 30){
 		printf("[%s] Nao pode ser maior que 30\n", m);
-		terminar();
+		terminarAdmin();
 		return 0;
 	}else{
 		numJogadoresMax = atoi(pm);
@@ -420,7 +332,7 @@ int main(int argc , char **argv) {
 					fprintf(stderr,"Duracao Campeonato: %d \n", duracaoCamp);
 				}else{
 					fprintf(stderr,"Duracao Campeonato Invalida \n");
-					terminar();
+					terminarAdmin();
 					return 0 ;
 				}
 					
@@ -433,13 +345,13 @@ int main(int argc , char **argv) {
 					fprintf(stderr,"Tempo de espera: %d \n", tempEspera);
 				}else {
 					fprintf(stderr,"Tempo de espera Invalido\n");
-					terminar();
+					terminarAdmin();
 					return 0;
 				}
 				break;
 			case '?':
 				fprintf( stderr,"Argumento invalido -%c. \n", optopt);
-				terminar();
+				terminarAdmin();
 				return 0;
 				break;
 			default:	
@@ -451,17 +363,17 @@ int main(int argc , char **argv) {
 	if(flagd == 0 && flagt == 0){
 		printf("Falta indicar tempo de espera -t\n");
 		printf("Falta indicar duracao do campeonato -d\n");
-		terminar();
+		terminarAdmin();
 		return 0;
 	}
 	if(flagd == 0){
 		printf("Falta indicar duracao do campeonato -d\n");
-		terminar();
+		terminarAdmin();
 		return 0;
 	}
 	if(flagt == 0){
 		printf("Falta indicar tempo de espera -t\n");
-		terminar();
+		terminarAdmin();
 		return 0;
 	}
 
@@ -547,6 +459,15 @@ int main(int argc , char **argv) {
 		  		getNomeUser(nome, cmd);
 		  		pcliente c =  getClienteByName(listaCli, nome);
 
+		  		int s = pthread_cancel(c->leThread->tid);
+		  		void * res;
+		  		pthread_join(c->leThread->tid, &res);
+
+		  		if(res == PTHREAD_CANCELED){
+		  		  printf("thread was canceled\n");	
+		  		}
+
+
 		  		if(c == NULL){
 		  			printf("Cliente \"%s\" nao existe. \n",nome );
 		  			continue;
@@ -599,18 +520,18 @@ int main(int argc , char **argv) {
 		  		}
 
 		  	}else if(strcmp(cmd, "games")== 0){
-		  			printf("Jogos: \n");
+		  			
 		  			mostraJogos(currentDir);
 
 		  	}
 			else if(strcmp(cmd, "exit") == 0){
 
 		  		if(countCli == 0){
-		  			terminar();
+		  			terminarAdmin();
 		  			exit(EXIT_SUCCESS);	
 		  		}else{
 		  			removerTodosCli();
-		  			terminar();	
+		  			terminarAdmin();	
 		  			exit(EXIT_SUCCESS);
 		  		}
 		  	}
@@ -622,7 +543,7 @@ int main(int argc , char **argv) {
 	
 
 	fprintf(stderr,"end main\n");
-  	terminar();	
+  	terminarAdmin();	
 	return 0;	
 }
 

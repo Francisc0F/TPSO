@@ -3,18 +3,21 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <dirent.h>
 #include "utils.h"
 
 
 
 // admin manager clientes
 int countCli;
+pcliente listaCli;
 
 void listaCliente(pcliente aux, FILE * p){
 		fprintf(p, "--------------------------------------\n");
 		fprintf(p, "Pid: %s\n", aux->pid);
 		fprintf(p, "Nome: %s\n", aux->nome);
 		fprintf(p, "Ultima msg: %s\n", aux->ultimaMsg);
+		fprintf(p, "pontos: %d\n", aux->pontos);
 		//fprintf(p,"--------------------------------------\n");
 }
 
@@ -190,5 +193,112 @@ void getFifoCliWithPid(char fifoName[], char * pid){
 void getNomeUser(char * nome, char * string){
 	for (int i = 1; i < strlen(string); i++){
 		nome[(i-1)] = string[i];
+	}
+}
+
+int validaDirname(char * name){
+	char pre[2]= "g_";
+	// nao funciona com pontos no nome do jogo 
+	char * dot = strrchr(name, '.');
+	if(pre[0] == *name){
+		name++;
+		if(pre[1] == *name ){
+			if(dot == NULL){
+				return 1;
+			}	
+		}
+	}
+	return 0;
+}
+
+
+void mostraJogos(char * dirname){
+	printf("Jogos: \n");
+	int n = 0;	
+	DIR * dir;
+	struct dirent * e;
+	if((dir = opendir(dirname)) == NULL){
+		perror("\n erro opendir");
+	}else{
+		while( (e = readdir(dir)) != NULL){
+			if(validaDirname(e->d_name) == 1){
+				printf("%s\n",e->d_name);
+				n++;
+			}
+		}
+		closedir(dir);
+	}
+	if(n==0)
+		printf("Nao ha jogos na diretoria indicada.\n");
+
+}
+
+
+
+void terminarAdmin(){
+	
+	FILE * fp;
+	fp = fopen (ADMINTEMP,"r");
+	int pid = 0;
+
+	if(fp){
+		fscanf(fp, "%d", &pid);
+		//printf("Admin PID : %d \n", pid);	
+   		if (pid == getpid()){
+   			int del = remove(ADMINTEMP);
+   			if(!del){
+      			//printf("temp file apagada.\n");
+   			}
+      		printf("Admin Terminado.\n");
+  		}	
+
+	}
+
+
+	unlink(SERVERFIFO);
+		
+}
+
+
+
+
+int checkRunning(){
+   	FILE * fp;
+	if( access(ADMINTEMP, F_OK ) != -1 ) {
+		fp = fopen (ADMINTEMP,"r");
+		int pid = 0;
+		if((fscanf(fp, "%d", &pid) == 1))
+		return 1;			
+		
+	} else {
+        fp = fopen (ADMINTEMP,"w");
+		if(fp != NULL){
+			fprintf (fp, "%d",getpid());
+		}
+		fclose(fp);
+	}
+	return 0;
+}
+
+void removerTodosCli(){
+  	pcliente aux = listaCli;
+
+	while(aux != NULL){
+		char fifo[100] = {0};
+		getFifoCliWithPid(fifo, aux->pid);
+	 	RES(fifo, "removido");
+		listaCli = removerCliente(listaCli, aux->nome);	
+		aux = aux->prox;
+	}
+}
+void BroadCastRES(char *  msg){
+	pcliente aux = listaCli;
+
+	while(aux != NULL){
+		char fifo[100] = {0};
+		getFifoCliWithPid(fifo, aux->pid);
+
+	 	RES(fifo, msg);
+		aux = aux->prox;
 	}
 }
