@@ -6,6 +6,7 @@
 #define SERVERFIFO             "./serverFIFO"	  
 #define CLIPREFIXO             "./c_"
 #define ADMINTEMP              "./temp"
+#define CAMPCOMECOU              "\nCampeonato comecou."
 
 extern int countCli;
 

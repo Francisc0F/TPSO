@@ -15,6 +15,8 @@
 
 int fdServer = 0;
 
+int campComecou = 0;
+
 int countCli = 0;
 pcliente listaCli = NULL;
 
@@ -122,7 +124,7 @@ void criarJogo(pcliente c){
 
 	c->waitGameThread = malloc(sizeof (TDados));
 	c->waitGameThread->inGame = 1;
-	c->waitGameThread->gameStatus= -1;
+	c->waitGameThread->gameStatus = -1;
 
 	char pid[100];
 	sprintf(pid, "%d", c->pidJogoAtual);
@@ -137,6 +139,7 @@ void criarJogo(pcliente c){
 	
 }
 void comecarCampeonato(){
+	campComecou = 1;
 	pcliente at = listaCli;
 	while(at != NULL){
 		criarJogo(at);
@@ -155,7 +158,7 @@ void escrevePipeAnonimo(void * arg){
 }
 
 
-void processMsg(mensagem m){
+void processMsg(mensagem m, int tempEspera){
 	//fprintf(stderr, "\nMensagem recebida de \"%s\".\n", m.nome);
 	int count = 0 ;
 	char * delim = " ";
@@ -187,8 +190,9 @@ void processMsg(mensagem m){
 				if(numCli < countCli){
 					fprintf(stderr, "Novo jogador \"%s\".\n", nome);
 					if(countCli == 2){
-						BroadCastRES("\n!!!Campeonato comecou!!!");
-						comecarCampeonato();
+						alarm(tempEspera);
+						RES(c_pipe, "Aguardar por mais jogadores.");
+						
 
 					} else {
 						RES(c_pipe, "Aguarde que campeonato comece.");
@@ -239,17 +243,34 @@ void processMsg(mensagem m){
 				ERROR(c_pipe,"Erro: Nao foi possivel remover.");
 			}
 			
+		}else if(strcmp(ptr, "#pjogo") == 0 ){
+			pcliente c = getClienteByName(listaCli, m.nome);
+			if(c == NULL){
+				return;
+			}else if(c->waitGameThread->inGame == 0){
+				criarJogo(c);	
+			}else{
+				RES(c_pipe, "ainda nao terminou jogo atual.");
+			}
+			
 		}else{
 			// escreve no jogo respetivo
 			pcliente c = getClienteByName(listaCli, m.nome);
 			if(c == NULL){
 				return;
 			}else if(c->s == 0){
-				TDados escreve;
-				strcpy(escreve.pid, m.pid);
-				escreve.pipe = c->pipesJogo[1];
-				strcpy(escreve.msg, m.msg);
-				escrevePipeAnonimo(&escreve);
+				if(c->waitGameThread != NULL){
+					if(c->waitGameThread->inGame == 1){
+					TDados escreve;
+					strcpy(escreve.pid, m.pid);
+					escreve.pipe = c->pipesJogo[1];
+					strcpy(escreve.msg, m.msg);
+					escrevePipeAnonimo(&escreve);
+					}else{
+						fprintf(stderr, "not in game\n");	
+					}	
+				}
+				
 			}	
 		}
 		break;
@@ -270,6 +291,14 @@ void sig_handler(int sig, siginfo_t *siginfo, void *context){
 		exit(EXIT_FAILURE);
 	}else if(sig == SIGUSR2){
 
+	}else if(sig == SIGALRM){
+		if(campComecou == 0){
+			BroadCastRES(CAMPCOMECOU);
+			comecarCampeonato();
+		}else{
+			// campeonato terminou
+
+		}
 	}
 }
 
@@ -299,6 +328,12 @@ int main(int argc , char **argv) {
 
 	if(sigaction(SIGUSR2, &act, NULL) < 0 ){
 		perror("SIGUSR2 sigaction");
+		return 0;
+	}
+
+	// alarm campeonato
+	if(sigaction(SIGALRM, &act, NULL) < 0 ){
+		perror("SIGALRM sigaction");
 		return 0;
 	}
 
@@ -337,7 +372,8 @@ int main(int argc , char **argv) {
 		numJogadoresMax = atoi(pm);
 	}
 
-	int duracaoCamp = 0, tempEspera = 0;
+	int duracaoCamp = 0;
+	int tempEspera = 0;
 	int opt;
 	int flagd = 0;
 	int flagt = 0;
@@ -454,7 +490,7 @@ int main(int argc , char **argv) {
 			mensagem mLida;
 			size_t count = read(fdServer, &mLida, sizeof(mensagem));
 	    	if (count == sizeof(mensagem)) {    
-			   	processMsg(mLida);
+			   	processMsg(mLida, tempEspera);
 			}
 			if(count == 0 || count == -1){
 				continue;	

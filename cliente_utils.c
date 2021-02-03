@@ -64,3 +64,9 @@ int clienteLe(char * fifo, int fd_cl){
 	}
 	return success;
 }
+
+void MenuCliente(){
+	printf("#mygame: dados do utilizador. \n");
+	printf("#quit: desistir do jogo. \n");
+	printf("#pjogo: jogo seguinte. \n");
+}

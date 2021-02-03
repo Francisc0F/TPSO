@@ -52,10 +52,6 @@ void sig_handler(int sig, siginfo_t *siginfo, void *context){
 }
 
 
-void MenuCliente(){
-	printf("#mygame: dados do utilizador. \n");
-	printf("#quit: desistir do jogo. \n");
-}
 
 
 int main(int argc, char**argv) {
@@ -196,6 +192,10 @@ int main(int argc, char**argv) {
 					terminar();
 					break;
 				
+	  		}else if(strcmp(cmd, "#pjogo") == 0){
+	  			clienteEscreve(fd, nome, cmd);
+				clienteLe(fifo, fd_cl);
+
 	  		}else{
 	  			//printf("para jogo %s\n", cmd);
 	  			// escreve para jogo
