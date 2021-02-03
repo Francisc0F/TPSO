@@ -69,7 +69,9 @@ pcliente adicionarCli(pcliente lista, mensagem m, char * pid){
     strcpy(n->nome, m.nome);
 	strcpy(n->ultimaMsg, m.msg);
 	n->leThread = NULL;
+	//n->waitGameThread = NULL;
 	n->s = 0;
+	//n->inGame = 0;
  	//fprintf(stderr, "pid \"%s\"\n",n->pid);
 
 	if(lista == NULL){
@@ -88,6 +90,11 @@ pcliente adicionarCli(pcliente lista, mensagem m, char * pid){
 	}
 }
 
+void freeCliente(pcliente x){
+	free(x->leThread);
+	free(x->waitGameThread);
+	free(x);
+}
 
 pcliente removerCliente(pcliente lista, char * nome){
 
@@ -97,13 +104,13 @@ pcliente removerCliente(pcliente lista, char * nome){
 		if(strcmp(aux->nome, nome) == 0) {
 			if(aux == lista){
 				lista = aux->prox;
-				free(aux);
+				freeCliente(aux);
 				countCli--;
 				return lista;
 			}else{
 				prev->prox = aux->prox;
 				countCli--;
-				free(aux);
+				freeCliente(aux);
 				return lista;
 			}
 		} 
@@ -113,6 +120,8 @@ pcliente removerCliente(pcliente lista, char * nome){
 
 	return lista;
 }
+
+
 
 //comu
 void OK(char * c_pipe){

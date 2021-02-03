@@ -16,6 +16,8 @@ struct t {
 	char msg[100];
 	char pid[100];
 	pthread_t tid;
+	int inGame;
+	int gameStatus;
 	void * ret;
 };
 
@@ -30,7 +32,9 @@ struct c {
 	int pidJogoAtual;
 	int pontos;
 	int s;
+	int inGame;
 	pTDados leThread;
+	pTDados waitGameThread;
 	pcliente prox;
 
 };
@@ -55,6 +59,8 @@ struct m {
 pcliente getClienteByName(pcliente lista, char * nome);
 
 pcliente removerCliente(pcliente lista, char * nome);
+
+void freeCliente(pcliente x);
 
 void listaCliente(pcliente aux, FILE * p);
 

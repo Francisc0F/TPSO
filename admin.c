@@ -38,8 +38,8 @@ void * lerPipeAnonimo(void * arg){
 			char fifo[100];
 			getFifoCliWithPid(fifo, pid);
 			RES(fifo, stream);
-			//fprintf(stderr,"leu %s",stream);
 		}else {
+		
 			break;
 		}
 	}
@@ -49,18 +49,30 @@ void * lerPipeAnonimo(void * arg){
 }
 
 void * waitGameEnd(void * arg){
-	TDados * info = (TDados *) arg;
+	//sleep(1);
+	pcliente c = (cliente *) arg;
+	int tStatus;
+	int x = waitpid(atoi(c->waitGameThread->pid), &c->waitGameThread->gameStatus, 0);
+	if(x == -1 ){
+		fprintf(stderr,"error -1 waitpid");
+	}else if(WIFEXITED(c->waitGameThread->gameStatus)){
+		c->pontos += WEXITSTATUS(c->waitGameThread->gameStatus);
+		//fprintf(stderr,"points %d",WEXITSTATUS(info->gameStatus));
+	}
+	c->waitGameThread->inGame = 0;
+	pthread_exit(&tStatus);
 
+	return NULL;
 }
 
-void criarJogo(pcliente at){
+void criarJogo(pcliente c){
 	int FP[2];
 	int PF[2];
 	pipe(FP);
 	pipe(PF);
 
-	at->pipesJogo[0] = FP[0];
-	at->pipesJogo[1] = PF[1];
+	c->pipesJogo[0] = FP[0];
+	c->pipesJogo[1] = PF[1];
 
 	int n;
 	int res = fork();
@@ -82,38 +94,46 @@ void criarJogo(pcliente at){
 		exit(3);
 	} 
 
-	at->pidJogoAtual = res;
+	c->pidJogoAtual = res;
 
 	close(FP[1]);
 	close(PF[0]);
 
-	
-
-	at->leThread = malloc(sizeof (TDados));
-	char pid[100];
-	strcpy(pid, at->pid);
-	strcpy(at->leThread->pid, pid);
-	at->leThread->pipe = FP[0];
+	if(c->leThread != NULL){
+		free(c->leThread);
+	}
+	c->leThread = malloc(sizeof (TDados));
+	strcpy(c->leThread->pid, c->pid);
+	c->leThread->pipe = FP[0];
 
 	//fprintf(stderr,"antes thread %s",pid );
 	int t_leJogo = pthread_create(
-	& at->leThread->tid,
+	& c->leThread->tid,
 	NULL,
 	lerPipeAnonimo,
-	(void *) at->leThread);
-	if(t_leJogo == 0){
+	(void *) c->leThread);
+	/*if(t_leJogo == 0){
 		//fprintf(stderr,"Thread Created");
+	}*/
+	
+	if(c->waitGameThread != NULL){
+		free(c->waitGameThread);
 	}
-	/*
-	int t_waitGameEnd = pthread_create(
-	& at->leThread->tid,
-	NULL,
-	lerPipeAnonimo,
-	(void *) at->leThread);*/
 
-	if(t_leJogo == 0){
-	//fprintf(stderr,"Thread Created");
-	}
+	c->waitGameThread = malloc(sizeof (TDados));
+	c->waitGameThread->inGame = 1;
+	c->waitGameThread->gameStatus= -1;
+
+	char pid[100];
+	sprintf(pid, "%d", c->pidJogoAtual);
+	strcpy(c->waitGameThread->pid, pid);
+	int t_waitGameEnd = pthread_create(
+	& c->waitGameThread->tid,
+	NULL,
+	waitGameEnd,
+	(void *) c);
+
+
 	
 }
 void comecarCampeonato(){
