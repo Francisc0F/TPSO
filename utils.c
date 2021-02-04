@@ -71,7 +71,10 @@ pcliente adicionarCli(pcliente lista, mensagem m, char * pid){
 	n->leThread = NULL;
 	n->waitGameThread = NULL;
 	n->s = 0;
-	//n->inGame = 0;
+	n->prox = NULL;
+	n->pontos = 0;
+	n->pidJogoAtual = -1;
+	n->inGame = 0;
  	//fprintf(stderr, "pid \"%s\"\n",n->pid);
 
 	if(lista == NULL){
@@ -91,6 +94,7 @@ pcliente adicionarCli(pcliente lista, mensagem m, char * pid){
 }
 
 void freeCliente(pcliente x){
+
 	free(x->leThread);
 	free(x->waitGameThread);
 	free(x);
@@ -310,7 +314,7 @@ void apagarTodosCli(){
 		listaCli = removerCliente(listaCli, aux->nome);	
 		aux = aux->prox;
 	}
-	
+
 }
 
 void BroadCastRES(char *  msg){

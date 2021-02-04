@@ -177,9 +177,9 @@ int main(int argc, char**argv) {
 					}else if(strcmp(m.msg, CAMPCOMECOU) == 0){
 						campeonatoComecou = 1;
 						
-					}else if(strcmp(m.msg, CAMPTERMINOU) == 0){
+					}else if(strstr(m.msg, CAMPTERMINOU) != NULL){
 						campeonatoComecou = 0;
-
+						fprintf(stderr, "\nserver: %s\n\n", m.msg);
 						fprintf(stderr, "\nserver: O campeonato vai recomecar.\n");
 						
 						break;

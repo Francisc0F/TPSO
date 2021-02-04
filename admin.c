@@ -74,6 +74,7 @@ void criarJogo(pcliente c){
 
 	c->pipesJogo[0] = FP[0];
 	c->pipesJogo[1] = PF[1];
+	fprintf(stderr,"criarJogo\n");
 
 	int n;
 	int res = fork();
@@ -134,6 +135,7 @@ void criarJogo(pcliente c){
 	NULL,
 	waitGameEnd,
 	(void *) c);
+		fprintf(stderr,"fim CriaJogo\n");
 }
 
 void comecarCampeonato(){
@@ -300,11 +302,10 @@ void terminarCampeonato(){
 	while(aux != NULL){
 		char fifo[100] = {0};
 		getFifoCliWithPid(fifo, aux->pid);
-
-	 	RES(fifo, CAMPTERMINOU);
+		
 	 	char t[100];
-	 	sprintf(t,"Campeonato Terminou. Teve %d pontos.\nO vencedor foi %s com %d pontos",
-	 	 aux->pontos, vencedor->nome, vencedor->pontos);
+	 	sprintf(t,"%s Teve %d pontos.\nO vencedor foi %s com %d pontos",
+	 	 CAMPTERMINOU, aux->pontos, vencedor->nome, vencedor->pontos);
 
 		RES(fifo, t);
 		aux = aux->prox;
