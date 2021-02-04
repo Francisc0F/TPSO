@@ -153,6 +153,44 @@ void escrevePipeAnonimo(void * arg){
 	write(info->pipe, strcat(info->msg, "\n"), strlen(info->msg) + 1);
 }
 
+void terminarCampeonato(){
+	pcliente aux = listaCli;
+	pcliente vencedor = aux;
+
+	// desligar jogos
+	while(aux != NULL){
+		if(aux->waitGameThread != NULL && aux->waitGameThread->inGame == 1){
+			union sigval val = {
+			//.sival_int = atoi(argv[1])
+			};
+			sigqueue( aux->pidJogoAtual, SIGUSR1, val);
+		}
+
+		if(aux->pontos > vencedor->pontos){
+			vencedor = aux;
+		}
+		aux = aux->prox;
+	}
+	
+	aux = listaCli;
+	// tempo para sinais chegarem
+	usleep(500);	
+	while(aux != NULL){
+		char fifo[100] = {0};
+		getFifoCliWithPid(fifo, aux->pid);
+
+	 	char t[100];
+	 	sprintf(t,"%s Teve %d pontos.\nO vencedor foi %s com %d pontos",
+	 	 CAMPTERMINOU, aux->pontos, vencedor->nome, vencedor->pontos);
+
+		RES(fifo, t);
+		aux = aux->prox;
+	}
+
+	// apagar jogadores
+	apagarTodosCli();
+}
+
 void processMsg(mensagem m, int tempEspera){
 	//fprintf(stderr, "\nMensagem recebida de \"%s\".\n", m.nome);
 	int count = 0 ;
@@ -239,6 +277,12 @@ void processMsg(mensagem m, int tempEspera){
 				fprintf(stderr, "Mensagem enviada para \"%s\".\n", m.nome);
 				ERROR(c_pipe,"Erro: Nao foi possivel remover.");
 			}
+
+			if(countCli == 1){
+				alarm(0);
+		  		terminarCampeonato();
+				campComecou = 0;
+			}
 			
 		}else if(strcmp(ptr, "#pjogo") == 0 ){
 			pcliente c = getClienteByName(listaCli, m.nome);
@@ -277,52 +321,8 @@ void processMsg(mensagem m, int tempEspera){
 	}
 }
 
-void terminarCampeonato(){
-	pcliente aux = listaCli;
-	pcliente vencedor = aux;
-
-	while(aux != NULL){
-		if(aux->waitGameThread != NULL && aux->waitGameThread->inGame == 1){
-			union sigval val = {
-			//.sival_int = atoi(argv[1])
-			};
-			sigqueue( aux->pidJogoAtual, SIGUSR1, val);
-		}
-
-		if(aux->pontos > vencedor->pontos){
-			vencedor = aux;
-		}
-
-		aux = aux->prox;
-	}
-	
-	aux = listaCli;
-	// tempo para sinais chegarem
-	usleep(500);	
-	while(aux != NULL){
-		char fifo[100] = {0};
-		getFifoCliWithPid(fifo, aux->pid);
-		
-	 	char t[100];
-	 	sprintf(t,"%s Teve %d pontos.\nO vencedor foi %s com %d pontos",
-	 	 CAMPTERMINOU, aux->pontos, vencedor->nome, vencedor->pontos);
-
-		RES(fifo, t);
-		aux = aux->prox;
-	}
-
-	// apagar jogadores
-	apagarTodosCli();
-
-}
-
-
 void sig_handler(int sig, siginfo_t *siginfo, void *context){
 	if(sig == SIGINT){
-		if(countCli > 0){
-			terminarTodosCli();	
-		}
-		
 		terminarAdmin();
 		exit(EXIT_FAILURE);
 	}else if(sig == SIGUSR2){
@@ -334,11 +334,11 @@ void sig_handler(int sig, siginfo_t *siginfo, void *context){
 			comecarCampeonato();
 			
 			// timer campeonato
-			printf("%d\n",duracaoCamp);
+			//printf("%d\n",duracaoCamp);
 			alarm(duracaoCamp);
 
 		}else if(campComecou == 1){
-			printf("terminar camp %d\n",duracaoCamp);
+			//printf("terminar camp %d\n",duracaoCamp);
 			// campeonato terminou
 			terminarCampeonato();
 			campComecou = 0;
@@ -620,6 +620,11 @@ int main(int argc , char **argv) {
 		  	}else if(strcmp(cmd, "games")== 0){
 		  			
 		  			mostraJogos(currentDir);
+		  	}
+		  	else if(strcmp(cmd, "end") == 0){
+		  		alarm(0);
+		  		terminarCampeonato();
+				campComecou = 0;
 		  	}
 			else if(strcmp(cmd, "exit") == 0){
 

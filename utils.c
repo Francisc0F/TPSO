@@ -249,7 +249,7 @@ void mostraJogos(char * dirname){
 
 
 void terminarAdmin(){
-	
+	BroadCastRES("Admin Saiu. cliente ficara instavel.");	
 	FILE * fp;
 	fp = fopen (ADMINTEMP,"r");
 	int pid = 0;
@@ -264,9 +264,7 @@ void terminarAdmin(){
    			}
       		printf("Admin Terminado.\n");
   		}	
-
 	}
-
 
 	unlink(SERVERFIFO);
 		
