@@ -7,6 +7,7 @@
 #define CLIPREFIXO             "./c_"
 #define ADMINTEMP              "./temp"
 #define CAMPCOMECOU              "\nCampeonato comecou."
+#define CAMPTERMINOU             "Campeonato terminou."
 
 extern int countCli;
 
@@ -61,6 +62,10 @@ pcliente getClienteByName(pcliente lista, char * nome);
 
 pcliente removerCliente(pcliente lista, char * nome);
 
+void terminarTodosCli();
+
+void apagarTodosCli();
+
 void freeCliente(pcliente x);
 
 void listaCliente(pcliente aux, FILE * p);
@@ -95,7 +100,7 @@ void mostraJogos(char * dirname);
 
 int checkRunning();
 
-void removerTodosCli();
+
 
 void BroadCastRES(char *  msg);
 

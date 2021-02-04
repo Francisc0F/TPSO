@@ -69,7 +69,7 @@ pcliente adicionarCli(pcliente lista, mensagem m, char * pid){
     strcpy(n->nome, m.nome);
 	strcpy(n->ultimaMsg, m.msg);
 	n->leThread = NULL;
-	//n->waitGameThread = NULL;
+	n->waitGameThread = NULL;
 	n->s = 0;
 	//n->inGame = 0;
  	//fprintf(stderr, "pid \"%s\"\n",n->pid);
@@ -289,7 +289,7 @@ int checkRunning(){
 	return 0;
 }
 
-void removerTodosCli(){
+void terminarTodosCli(){
   	pcliente aux = listaCli;
 
 	while(aux != NULL){
@@ -300,6 +300,19 @@ void removerTodosCli(){
 		aux = aux->prox;
 	}
 }
+
+void apagarTodosCli(){
+  	pcliente aux = listaCli;
+
+	while(aux != NULL){
+		char fifo[100] = {0};
+		getFifoCliWithPid(fifo, aux->pid);
+		listaCli = removerCliente(listaCli, aux->nome);	
+		aux = aux->prox;
+	}
+	
+}
+
 void BroadCastRES(char *  msg){
 	pcliente aux = listaCli;
 

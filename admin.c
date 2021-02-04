@@ -14,9 +14,8 @@
 
 
 int fdServer = 0;
-
 int campComecou = 0;
-
+int duracaoCamp = 0;
 int countCli = 0;
 pcliente listaCli = NULL;
 
@@ -129,34 +128,28 @@ void criarJogo(pcliente c){
 	char pid[100];
 	sprintf(pid, "%d", c->pidJogoAtual);
 	strcpy(c->waitGameThread->pid, pid);
+
 	int t_waitGameEnd = pthread_create(
 	& c->waitGameThread->tid,
 	NULL,
 	waitGameEnd,
 	(void *) c);
-
-
-	
 }
+
 void comecarCampeonato(){
-	campComecou = 1;
+
 	pcliente at = listaCli;
 	while(at != NULL){
 		criarJogo(at);
 		at = at->prox;
 	}
-
 }
-
-
-
 
 void escrevePipeAnonimo(void * arg){
 	TDados * info = (TDados *) arg; 
 	//fprintf(stderr,"escreveu: %s\n",info->msg);
 	write(info->pipe, strcat(info->msg, "\n"), strlen(info->msg) + 1);
 }
-
 
 void processMsg(mensagem m, int tempEspera){
 	//fprintf(stderr, "\nMensagem recebida de \"%s\".\n", m.nome);
@@ -187,6 +180,7 @@ void processMsg(mensagem m, int tempEspera){
 			ptr = strtok(NULL, delim);
 			if(existe(listaCli, nome) == 0){
 				listaCli = adicionarCli(listaCli, m, pid);
+
 				if(numCli < countCli){
 					fprintf(stderr, "Novo jogador \"%s\".\n", nome);
 					if(countCli == 2){
@@ -195,6 +189,7 @@ void processMsg(mensagem m, int tempEspera){
 						
 
 					} else {
+						printf("c_pipe %s\n", c_pipe);
 						RES(c_pipe, "Aguarde que campeonato comece.");
 					}
 					
@@ -247,7 +242,7 @@ void processMsg(mensagem m, int tempEspera){
 			pcliente c = getClienteByName(listaCli, m.nome);
 			if(c == NULL){
 				return;
-			}else if(c->waitGameThread->inGame == 0){
+			}else if(c->waitGameThread != NULL && c->waitGameThread->inGame == 0){
 				criarJogo(c);	
 			}else{
 				RES(c_pipe, "ainda nao terminou jogo atual.");
@@ -278,13 +273,53 @@ void processMsg(mensagem m, int tempEspera){
 		ptr = strtok(NULL, delim);
 		i++;
 	}
+}
+
+void terminarCampeonato(){
+	pcliente aux = listaCli;
+	pcliente vencedor = aux;
+
+	while(aux != NULL){
+		if(aux->waitGameThread != NULL && aux->waitGameThread->inGame == 1){
+			union sigval val = {
+			//.sival_int = atoi(argv[1])
+			};
+			sigqueue( aux->pidJogoAtual, SIGUSR1, val);
+		}
+
+		if(aux->pontos > vencedor->pontos){
+			vencedor = aux;
+		}
+
+		aux = aux->prox;
+	}
+	
+	aux = listaCli;
+	// tempo para sinais chegarem
+	usleep(500);	
+	while(aux != NULL){
+		char fifo[100] = {0};
+		getFifoCliWithPid(fifo, aux->pid);
+
+	 	RES(fifo, CAMPTERMINOU);
+	 	char t[100];
+	 	sprintf(t,"Campeonato Terminou. Teve %d pontos.\nO vencedor foi %s com %d pontos",
+	 	 aux->pontos, vencedor->nome, vencedor->pontos);
+
+		RES(fifo, t);
+		aux = aux->prox;
+	}
+
+	// apagar jogadores
+	apagarTodosCli();
 
 }
+
 
 void sig_handler(int sig, siginfo_t *siginfo, void *context){
 	if(sig == SIGINT){
 		if(countCli > 0){
-			removerTodosCli();	
+			terminarTodosCli();	
 		}
 		
 		terminarAdmin();
@@ -293,14 +328,23 @@ void sig_handler(int sig, siginfo_t *siginfo, void *context){
 
 	}else if(sig == SIGALRM){
 		if(campComecou == 0){
+			campComecou = 1;
 			BroadCastRES(CAMPCOMECOU);
 			comecarCampeonato();
-		}else{
-			// campeonato terminou
+			
+			// timer campeonato
+			printf("%d\n",duracaoCamp);
+			alarm(duracaoCamp);
 
+		}else if(campComecou == 1){
+			printf("terminar camp %d\n",duracaoCamp);
+			// campeonato terminou
+			terminarCampeonato();
+			campComecou = 0;
 		}
 	}
 }
+
 
 
 
@@ -372,7 +416,7 @@ int main(int argc , char **argv) {
 		numJogadoresMax = atoi(pm);
 	}
 
-	int duracaoCamp = 0;
+	
 	int tempEspera = 0;
 	int opt;
 	int flagd = 0;
@@ -505,7 +549,6 @@ int main(int argc , char **argv) {
 			if(strcmp(cmd, "players") == 0){
 
   				listarClientes(listaCli);
-
 		  	}else if(cmd[0] == 'k'){
 		  		if(strlen(cmd) == 1){
 		  			printf("faltam parametros.\n");
@@ -536,7 +579,6 @@ int main(int argc , char **argv) {
 
 		  			RES(fifo, "removido");
 		  		}
-
 		  	}else if(cmd[0] == 's'){
 		  		if(strlen(cmd) == 1){
 		  			printf("faltam parametros.\n");
@@ -555,7 +597,6 @@ int main(int argc , char **argv) {
 					getFifoCliWithPid(fifo, c->pid);
 		  			RES(fifo, "ligacao suspendida.");
 		  		}
-
 		  	}else if(cmd[0] == 'r'){
 		  		if(strlen(cmd) == 1){
 		  			printf("faltam parametros.\n");
@@ -578,7 +619,6 @@ int main(int argc , char **argv) {
 		  	}else if(strcmp(cmd, "games")== 0){
 		  			
 		  			mostraJogos(currentDir);
-
 		  	}
 			else if(strcmp(cmd, "exit") == 0){
 
@@ -586,7 +626,7 @@ int main(int argc , char **argv) {
 		  			terminarAdmin();
 		  			exit(EXIT_SUCCESS);	
 		  		}else{
-		  			removerTodosCli();
+		  			terminarTodosCli();
 		  			terminarAdmin();	
 		  			exit(EXIT_SUCCESS);
 		  		}

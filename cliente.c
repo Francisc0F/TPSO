@@ -15,6 +15,7 @@ int countCli;
 int fd_cl;
 int fd; 
 
+int campeonatoComecou = 0;
 
 void getFifoName( char fifo[]){
   	char pidStr[100]= {0};
@@ -31,7 +32,6 @@ void terminar(){
 	char fifo[100] = {0};
 	getFifoName(fifo);
 	unlink(fifo);
-
 	close(fd_cl);
 	close(fd);   
 	printf("------------------------------------------------ \n");
@@ -78,135 +78,147 @@ int main(int argc, char**argv) {
   		fprintf(stderr, "Servidor Off. A terminar cliente.\n");
   		exit(EXIT_FAILURE);  
   	}
-
-
-  	char nome[100];
-  	memset(nome, '\0', sizeof(nome));
-
-	printf("------------------------------------------------ \n");
-	printf("		Programa cliente \n");
-
-	char pidStr[100];
-  	sprintf(pidStr, "%d", getpid());
-
-	char fifo[100] = {0};
+    char fifo[100] = {0};
 	getFifoName(fifo);
 
 	mkfifo(fifo, 0666); 
+	char pidStr[100];
+	sprintf(pidStr, "%d", getpid());
+
+		
 
 	fd_cl = open(fifo, O_RDWR | O_NONBLOCK); 	
-
 	if(fd_cl == -1){
-		perror("error: fd_cl = open(fifo, O_RDWR | O_NONBLOCK);");
-		terminar();
+	    perror("error: fd_cl = open(fifo, O_RDWR | O_NONBLOCK);");
+	 	terminar();
 	}
 
-  	char info[100] = {0};
-  	strcpy(info,"login ");
+   	// reinicia cliente
+  	while(1){
+		printf("------------------------------------------------ \n");
+		printf("		Programa cliente \n");
 
-	while(1){
-		printf("Qual o seu nome: \n");
-		scanf("%[^\n]%*c",nome);
+	  	char info[100] = {0};
+	  	strcpy(info,"login ");
+		char nome[100]= {0};
+		while(1){
+			printf("Qual o seu nome: \n");
+			scanf("%s",nome);
+			//scanf("%[^\n]%*c",nome);
+			if(strcmp(nome,"") == 0){
+				continue;
+			}
+			clienteEscreve(fd, nome, strcat(info ,pidStr));
 
-		clienteEscreve(fd, nome, strcat(info ,pidStr));
-
-		if(clienteLe(fifo, fd_cl) == 1) {
-			break;
-		}
-	}
-
-
-	
-
-  	fprintf(stderr,"----------------------------------------------------\n");
-  	fprintf(stderr,"Menu cliente\n");
-  	fprintf(stderr,"----------------------------------------------------\n");
-
-
-	fd_set rfds;
-	struct timeval timeval;
-	int readyfd;
-
-  	char cmd[100];
-	while(1){
-
-		FD_ZERO(&rfds);
-		FD_SET(STDIN_FILENO, &rfds);
-		FD_SET(fd_cl, &rfds);	
-
-		//timeval.tv_sec = 20;
-		//timeval.tv_usec = 0;
-
-  		MenuCliente();
-
-		readyfd = select(fd_cl + 1, &rfds, NULL, NULL, NULL);
-
-		if(readyfd == -1){
-			perror("error: select()\n");
+			if(clienteLe(fifo, fd_cl) == 1) {
+				break;
+			}
 
 		}
 
-		if(readyfd == 0){
-			printf("Listening...\n");
-			continue;
-		}
 
-		if(FD_ISSET(fd_cl, &rfds)){
-			int success = 0;
-			mensagem m;
-			
-			size_t count = read(fd_cl, &m, sizeof(mensagem));
-			if(count == 0 || count == -1){
+		
+
+	  	fprintf(stderr,"----------------------------------------------------\n");
+	  	fprintf(stderr,"Menu cliente\n");
+	  	fprintf(stderr,"----------------------------------------------------\n");
+
+
+		fd_set rfds;
+		struct timeval timeval;
+		int readyfd;
+
+	  	char cmd[100];
+		while(1){
+
+			FD_ZERO(&rfds);
+			FD_SET(STDIN_FILENO, &rfds);
+			FD_SET(fd_cl, &rfds);	
+
+			//timeval.tv_sec = 20;
+			//timeval.tv_usec = 0;
+
+	  		MenuCliente(campeonatoComecou);
+
+			readyfd = select(fd_cl + 1, &rfds, NULL, NULL, NULL);
+
+			if(readyfd == -1){
+				perror("error: select()\n");
+
+			}
+
+			if(readyfd == 0){
+				printf("Listening...\n");
 				continue;
 			}
 
-			if (count == sizeof(mensagem)) {   
-				if(m.erro == 1){
-					fprintf(stderr, "\n--------Erro BadGateway--------");
-					success = 0;					
-				}else{
-					success = 1;
-				}
-
-				if(strcmp(m.msg, "removido") == 0 ){
-						fprintf(stderr, "\nserver: Foi removido do campeonato.\n\n");
-						printf("A sair do Jogo.\n");
-						terminar();	
-				}else{
-					fprintf(stderr, "\nserver: %s\n\n", m.msg);
-				}
-			}	
-			
-		}
-		
-		if(FD_ISSET(STDIN_FILENO, &rfds)){
-			scanf("%s", cmd);
-	  		if(strcmp(cmd, "#mygame") == 0){
-					clienteEscreve(fd, nome, cmd);
-					clienteLe(fifo, fd_cl);
-
-			}else if(strcmp(cmd, "#quit") == 0){
-					clienteEscreve(fd, nome, cmd);
-					clienteLe(fifo, fd_cl);
-					printf("A sair do Jogo.\n");
-					terminar();
-					break;
+			// admin 	
+			if(FD_ISSET(fd_cl, &rfds)){
+				int success = 0;
+				mensagem m;
 				
-	  		}else if(strcmp(cmd, "#pjogo") == 0){
-	  			clienteEscreve(fd, nome, cmd);
-				clienteLe(fifo, fd_cl);
+				size_t count = read(fd_cl, &m, sizeof(mensagem));
+				if(count == 0 || count == -1){
+					continue;
+				}
 
-	  		}else{
-	  			//printf("para jogo %s\n", cmd);
-	  			// escreve para jogo
-	  			clienteEscreve(fd, nome, cmd);
+				if (count == sizeof(mensagem)) {   
+					if(m.erro == 1){
+						fprintf(stderr, "\n--------Erro BadGateway--------");
+						success = 0;					
+					}else{
+						success = 1;
+					}
 
-	  		}	
-		}
+					if(strcmp(m.msg, "removido") == 0 ){
+							fprintf(stderr, "\nserver: Foi removido do campeonato.\n\n");
+							printf("A sair do Jogo.\n");
+							terminar();	
+					}else if(strcmp(m.msg, CAMPCOMECOU) == 0){
+						campeonatoComecou = 1;
+						
+					}else if(strcmp(m.msg, CAMPTERMINOU) == 0){
+						campeonatoComecou = 0;
 
-  		
-  	};
+						fprintf(stderr, "\nserver: O campeonato vai recomecar.\n");
+						
+						break;
+					}else{
+						fprintf(stderr, "\nserver: %s\n\n", m.msg);
+					}
+				}	
+				
+			}
+
+			// cliente input	
+			if(FD_ISSET(STDIN_FILENO, &rfds)){
+				scanf("%s", cmd);
+		  		if(strcmp(cmd, "#mygame") == 0){
+						clienteEscreve(fd, nome, cmd);
+						clienteLe(fifo, fd_cl);
+
+				}else if(strcmp(cmd, "#quit") == 0){
+						clienteEscreve(fd, nome, cmd);
+						clienteLe(fifo, fd_cl);
+						printf("A sair do Jogo.\n");
+						terminar();
+					
+		  		}else if(strcmp(cmd, "#pjogo") == 0){
+		  			clienteEscreve(fd, nome, cmd);
+					clienteLe(fifo, fd_cl);
+
+		  		}else{
+		  			//printf("para jogo %s\n", cmd);
+		  			// escreve para jogo
+		  			clienteEscreve(fd, nome, cmd);
+
+		  		}	
+			}
+
+	  		
+	  	};
  
+	}
 
 	return 0;
 }
