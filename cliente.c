@@ -44,11 +44,15 @@ void sig_handler(int sig, siginfo_t *siginfo, void *context){
 	if(sig == SIGINT){
 		terminar();
 		exit(EXIT_FAILURE);
-	}
-		
-	printf("Terminar Jogo. Sending PID: %ld, UID: %ld value:%d \n", 
-	(long) siginfo->si_pid, (long)siginfo->si_uid, siginfo->si_value.sival_int);
+	
+		printf("Terminar Cliente. Sending PID: %ld, UID: %ld value:%d \n", 
+		(long) siginfo->si_pid, (long)siginfo->si_uid, siginfo->si_value.sival_int);
 
+	}else if(sig == SIGUSR2 && siginfo->si_value.sival_int == 2){
+	fprintf(stderr, "Admin Saiu. Cliente ficara instavel.\n");
+
+	}
+	
 }
 
 

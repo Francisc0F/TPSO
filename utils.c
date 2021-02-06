@@ -3,7 +3,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <math.h>
 #include <dirent.h>
+#include <time.h>
+#include <signal.h>
 #include "utils.h"
 
 
@@ -11,6 +14,22 @@
 // admin manager clientes
 int countCli;
 pcliente listaCli;
+
+
+
+void BroadCastSignal(int sig){
+	pcliente aux = listaCli;
+
+	while(aux != NULL){
+		char fifo[100];
+		union sigval val = {
+			.sival_int = sig
+		};
+		sigqueue( atoi(aux->pid), SIGUSR2, val);
+		usleep(20);
+		aux = aux->prox;
+	}
+} 
 
 void listaCliente(pcliente aux, FILE * p){
 		fprintf(p, "--------------------------------------\n");
@@ -243,13 +262,46 @@ void mostraJogos(char * dirname){
 	}
 	if(n==0)
 		printf("Nao ha jogos na diretoria indicada.\n");
+}
 
+void getRandomJogo(char * jogo, char * dirname, int pid){
+	int n = 0;	
+	DIR * dir;
+	struct dirent * e;
+
+	if((dir = opendir(dirname)) == NULL){
+		perror("\n erro opendir");
+	}else{
+		while( (e = readdir(dir)) != NULL){
+			if(validaDirname(e->d_name) == 1){
+				n++;
+			}
+		}
+		closedir(dir);
+	}
+	int random = rand() % (n-1);
+	int s = 0;
+	//fprintf(stderr,"rand %d\n", random);
+	if((dir = opendir(dirname)) == NULL){
+		perror("\n erro opendir");
+	}else{
+		while( (e = readdir(dir)) != NULL){
+			if(validaDirname(e->d_name) == 1){
+				if(s == random){
+					strcpy(jogo, e->d_name);
+					return;
+				}
+				s++;
+			}
+		}
+		closedir(dir);
+	}
 }
 
 
 
+
 void terminarAdmin(){
-	BroadCastRES("Admin Saiu. cliente ficara instavel.");	
 	FILE * fp;
 	fp = fopen (ADMINTEMP,"r");
 	int pid = 0;
@@ -265,7 +317,8 @@ void terminarAdmin(){
       		printf("Admin Terminado.\n");
   		}	
 	}
-
+	BroadCastSignal(2);
+	
 	unlink(SERVERFIFO);
 		
 }
@@ -326,3 +379,4 @@ void BroadCastRES(char *  msg){
 		aux = aux->prox;
 	}
 }
+

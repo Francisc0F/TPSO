@@ -19,6 +19,8 @@ int duracaoCamp = 0;
 int countCli = 0;
 pcliente listaCli = NULL;
 
+char currentDirGlobal[100];
+
 void * lerPipeAnonimo(void * arg){
 	char stream[400] = {0};
 	TDados * info = (TDados *) arg;
@@ -27,8 +29,8 @@ void * lerPipeAnonimo(void * arg){
 	char pid[100];
 	strcpy(pid, info->pid);
 
-	printf("THREAD info->pid %s\n",pid );	
-	printf("info->pip %d\n",pip );	
+	//printf("THREAD info->pid %s\n",pid );	
+	//printf("info->pip %d\n",pip );	
 
 	int tStatus = 1;
 	while(1){
@@ -80,6 +82,8 @@ void criarJogo(pcliente c){
 	int res = fork();
 	if(res == 0){
 		// filho 	
+		srand(getpid());
+
 		close(PF[1]);// nao precisa da extremidade de escrita no pipe PF
 		close(0);//fechar stdin
 		dup(PF[0]);//duplica parte de leitura, para ler extremidade de leitura PF 
@@ -89,11 +93,18 @@ void criarJogo(pcliente c){
 		close(1);//fechar stdout
 		dup(FP[1]);//duplica parte de escrita, mete stdout apontar pra parte de escrita do FP
 		close(FP[1]);// limpa duplicacao do FP[1] desnecessaria
-				
-		execl("jogos/g_jogo", "jogos/g_jogo", NULL);	
-		printf("erro jogo\n");
+
+		char jogo[100];
+		getRandomJogo(jogo, currentDirGlobal,  getppid());
+		char diretoriaJogo[100];
+		sprintf(diretoriaJogo, "%s/%s",currentDirGlobal, jogo);
+		fprintf(stderr, "jogo ->%s\n",diretoriaJogo );
+		execl(diretoriaJogo,diretoriaJogo, NULL);	
+		//execl("jogos/g_jogo", "jogos/g_jogo", NULL);	
+		
+		printf("erro jogo: %s\n", diretoriaJogo);
 		//sleep(30);
-		exit(3);
+		exit(0);
 	} 
 
 	c->pidJogoAtual = res;
@@ -350,6 +361,8 @@ void sig_handler(int sig, siginfo_t *siginfo, void *context){
 
 
 int main(int argc , char **argv) {
+	
+	
 	char *g = "GAMEDIR";
 	char *pg = NULL;
 	char *m = "MAXPLAYERS";
@@ -404,6 +417,7 @@ int main(int argc , char **argv) {
 		strcpy(currentDir, pg);
 	}
 
+	strcpy(currentDirGlobal, currentDir);
 	pm = getenv(m);
 	
 	if(pm == NULL || *pm == '\0'){

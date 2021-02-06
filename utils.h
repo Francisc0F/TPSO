@@ -53,11 +53,6 @@ struct m {
 
 
 
-
-
-
-
-
 pcliente getClienteByName(pcliente lista, char * nome);
 
 pcliente removerCliente(pcliente lista, char * nome);
@@ -100,10 +95,13 @@ void mostraJogos(char * dirname);
 
 int checkRunning();
 
+void getRandomJogo(char * jogo, char * dirname, int pid);
+
 
 
 void BroadCastRES(char *  msg);
 
+void BroadCastSignal(int sig);
 
 void terminarAdmin();
 
